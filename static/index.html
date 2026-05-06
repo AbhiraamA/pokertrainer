@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Trainer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e2e8f0;font-family:system-ui,sans-serif;min-height:100vh;font-size:14px}
+button{cursor:pointer;transition:all .12s}
+button:disabled{opacity:.35;cursor:not-allowed}
+
+/* setup */
+#setup{max-width:460px;margin:50px auto;padding:0 20px}
+#setup h1{font-size:26px;font-weight:800;color:#f8fafc;margin-bottom:6px}
+#setup p{color:#64748b;font-size:13px;margin-bottom:32px}
+.slabel{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px}
+.opp-row{display:flex;gap:8px;margin-bottom:22px}
+.opp-btn{flex:1;padding:11px 0;border-radius:8px;font-size:15px;font-weight:700;border:2px solid #1f2937;background:#111827;color:#64748b}
+.opp-btn.sel{border-color:#2563eb;background:#1e3a8a;color:#bfdbfe}
+select{width:100%;padding:9px 12px;border-radius:8px;background:#111827;border:1.5px solid #1f2937;color:#e2e8f0;font-size:13px;margin-bottom:5px}
+.hint{font-size:11px;color:#475569;margin-bottom:18px}
+.hint code{color:#60a5fa}
+.bot-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#111827;border:1px solid #1f2937;margin-bottom:6px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid rgba(255,255,255,.15);flex-shrink:0}
+.av.tight{background:#065f46;border-color:#34d399}
+.av.loose{background:#7c2d12;border-color:#fb923c}
+.av.maniac{background:#6b21a8;border-color:#c084fc}
+.av.calling{background:#374151;border-color:#9ca3af}
+.av.you{background:#1e40af;border-color:#60a5fa}
+.deal-btn{width:100%;padding:13px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-size:15px;font-weight:700;margin-top:8px}
+.deal-btn:hover{background:#1d4ed8}
+
+/* game layout */
+.wrap{max-width:none;margin:0 auto;padding:14px}
+.header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.header h2{font-size:17px;font-weight:800;color:#f8fafc}
+.hnum{font-size:12px;color:#475569}
+.wl{font-size:11px;color:#475569;margin-left:4px}
+.wl .w{color:#34d399}.wl .l{color:#f87171}
+.pills{display:flex;gap:5px}
+.pill{padding:2px 11px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;background:#1f2937;color:#64748b}
+.pill.active{background:#1d4ed8;color:#bfdbfe}
+.settings-btn{margin-left:auto;font-size:11px;color:#475569;background:transparent;border:1px solid #1f2937;border-radius:6px;padding:3px 9px}
+.summary-btn{font-size:11px;color:#a78bfa;background:transparent;border:1px solid #4c1d95;border-radius:6px;padding:3px 9px;margin-left:5px}
+.summary-btn:hover{background:rgba(167,139,250,.08)}
+.next-btn-sec{width:100%;padding:9px;border-radius:7px;border:1px solid #4c1d95;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;margin-top:7px}
+.sum-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.sum-overlay-box{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:28px 36px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.sum-spinner{width:36px;height:36px;border:3px solid #1f2937;border-top-color:#a78bfa;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sum-overlay-title{font-size:14px;font-weight:700;color:#e2e8f0}
+.sum-overlay-sub{font-size:11px;color:#64748b}
+.grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px}
+.panel{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:12px 14px}
+.sec{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+
+/* felt */
+.felt{background:#1a4731;border:6px solid #7c5c2a;border-radius:140px;position:relative;width:100%;height:400px}
+
+/* cards */
+.card{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;border:2px solid #cbd5e1;background:#fff;font-weight:700;line-height:1.1;box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.card.sm{width:55px;height:77px;font-size:16px}
+.card.lg{width:69px;height:96px;font-size:20px}
+.card.red{color:#dc2626}
+.card.black{color:#1e293b}
+.card.back{background:#1e3a8a;border-color:#1e3a8a}
+.card.empty{background:rgba(255,255,255,.04);border:2px dashed rgba(255,255,255,.12)}
+.cards{display:flex;gap:5px}
+
+/* community */
+.community{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+.pot-lbl{font-size:13px;color:rgba(255,255,255,.5)}
+.pot-amt{font-size:19px;font-weight:800;color:#fbbf24;letter-spacing:.01em}
+
+/* seats */
+.seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px}
+.seat-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid rgba(255,255,255,.15)}
+.seat-av.active{box-shadow:0 0 0 3px #f59e0b}
+.seat-av.folded{opacity:.28}
+.seat-name{font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;font-weight:500}
+.seat-pos{font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:.05em;margin-bottom:1px}
+.seat-stats{font-size:9px;color:#475569;white-space:nowrap;margin-top:2px;letter-spacing:.01em;line-height:1.3}
+.seat-act{font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;white-space:nowrap;margin-top:3px;letter-spacing:.03em;animation:badge-fade 2.8s ease-out forwards}
+@keyframes badge-fade{0%,65%{opacity:1}100%{opacity:0}}
+.sa-fold{background:#7f1d1d;color:#fca5a5}
+.sa-call{background:#78350f;color:#fcd34d}
+.sa-raise,.sa-bet{background:#064e3b;color:#6ee7b7}
+.sa-check{background:#374151;color:#9ca3af}
+.sa-winner{background:rgba(245,158,11,.25);color:#fbbf24;font-weight:700;animation:none}
+
+/* card animations */
+@keyframes card-deal{from{opacity:0;transform:translateY(-34px) rotate(-7deg) scale(.88)}to{opacity:1;transform:none}}
+@keyframes card-flip{from{opacity:0;transform:perspective(500px) rotateY(88deg) scale(.94)}to{opacity:1;transform:none}}
+.card-anim-deal{animation:card-deal 280ms cubic-bezier(.22,.68,0,1.2) both}
+.card-anim-flip{animation:card-flip 240ms ease-out both}
+.anim-fast .card-anim-deal{animation-duration:140ms}
+.anim-fast .card-anim-flip{animation-duration:120ms}
+
+.thinking{display:flex;gap:3px;margin-top:2px}
+.td{width:6px;height:6px;border-radius:50%;background:#60a5fa;animation:th 1.4s ease-in-out infinite}
+.td:nth-child(2){animation-delay:.2s}
+.td:nth-child(3){animation-delay:.4s}
+@keyframes th{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* stats */
+.stats{display:flex;gap:22px;margin-bottom:12px;flex-wrap:wrap}
+.stat .s-lbl{font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:.06em}
+.stat .s-val{font-size:18px;font-weight:700}
+
+/* equity section */
+.eq-row{display:flex;gap:10px;margin-bottom:5px;align-items:center}
+.eq-block{flex:1}
+.eq-title{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.eq-val{font-size:15px;font-weight:700;color:#60a5fa}
+.eq-sub{font-size:9px;color:#475569}
+.eq-bar{height:6px;border-radius:3px;background:#1f2937;overflow:hidden;margin-bottom:4px}
+.eq-fill{height:100%;border-radius:3px;transition:width .4s,background .4s}
+.eq-hint{font-size:10px;margin-bottom:10px}
+
+/* draws panel */
+.draws-grid{display:flex;flex-direction:column;gap:5px}
+.draw-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0d1117;border-radius:6px;border:1px solid #1f2937}
+.draw-name{font-size:11px;font-weight:600;color:#e2e8f0;flex:1}
+.draw-outs{font-size:10px;color:#fbbf24;font-weight:700;min-width:40px}
+.draw-eq{font-size:10px;color:#94a3b8}
+.no-draws{font-size:12px;color:#374151;text-align:center;padding:10px 0}
+
+/* actions */
+.action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.abtn{padding:14px 6px;border-radius:8px;border:2px solid;background:transparent;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.abtn sub{font-size:11px;opacity:.7;font-weight:400}
+.abtn.fold{border-color:#374151;color:#9ca3af}
+.abtn.fold:hover:not(:disabled){background:#1f2937}
+.abtn.call{border-color:#065f46;color:#34d399}
+.abtn.call:hover:not(:disabled){background:rgba(52,211,153,.07)}
+.abtn.raise{border-color:#1d4ed8;color:#60a5fa}
+.abtn.raise:hover:not(:disabled){background:rgba(96,165,250,.07)}
+.raise-panel{background:#0d1117;border-radius:7px;padding:10px;margin-bottom:7px;border:1px solid #1f2937}
+.rp-top{display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-bottom:5px}
+.rp-top span:last-child{font-weight:700;color:#60a5fa}
+input[type=range]{width:100%;margin-bottom:6px;accent-color:#2563eb}
+.sz-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:7px}
+.sz-btn{font-size:9px;padding:3px 0;border-radius:5px;border:1px solid #374151;background:#1f2937;color:#94a3b8}
+.sz-btn:hover{background:#374151;color:#e2e8f0}
+.conf-btn{width:100%;padding:9px;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700}
+.conf-btn:hover:not(:disabled){background:#1d4ed8}
+.hint-btn{width:100%;padding:6px;border-radius:6px;border:1px solid #4c1d95;background:transparent;color:#a78bfa;font-size:11px;font-weight:600;margin-bottom:7px}
+.hint-btn:hover:not(:disabled){background:rgba(167,139,250,.08)}
+.hint-box{padding:9px 12px;border-radius:7px;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.22);font-size:12px;color:#c4b5fd;line-height:1.55;margin-bottom:8px;font-style:italic}
+.hint-loading{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.22);font-size:11px;color:#7c3aed;margin-bottom:8px}
+.waiting{text-align:center;padding:12px;font-size:12px;color:#475569;display:flex;align-items:center;justify-content:center;gap:7px}
+.next-btn{width:100%;padding:11px;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;margin-top:7px}
+.next-btn:hover{background:#1d4ed8}
+
+/* log */
+.log-box{max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.le{font-size:11px;line-height:1.7;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.le.street{color:#f59e0b;font-weight:700;border:none}
+.le.player{color:#34d399}
+.le.bot{color:#60a5fa}
+.le.system{color:#94a3b8}
+.le.winner{color:#fbbf24;font-weight:700}
+.le .thought{font-size:10px;color:#374151;font-style:italic;margin-left:5px}
+
+/* coach */
+.vbadge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:7px}
+.v-optimal{background:#064e3b;color:#6ee7b7}
+.v-acceptable{background:#78350f;color:#fcd34d}
+.v-mistake{background:#7f1d1d;color:#fca5a5}
+.cs{border-left:2px solid #1f2937;padding-left:9px;margin-bottom:8px}
+.cs-t{font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.cs-b{font-size:11px;color:#94a3b8;line-height:1.55}
+.cs.hi{border-left-color:#1d4ed8}
+.cs.hi .cs-t{color:#3b82f6}
+.cs.hi .cs-b{color:#e2e8f0}
+.coach-empty{font-size:12px;color:#374151;text-align:center;padding:24px 12px}
+.coach-loading{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;color:#475569;font-size:12px}
+
+/* player list */
+.pl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.pl-row .av{width:28px;height:28px;font-size:9px}
+.pl-info .pn{font-size:11px;font-weight:600}
+.pl-info .pd{font-size:9px;color:#475569}
+.ptag{font-size:8px;color:#374151;background:#0d1117;padding:1px 5px;border-radius:7px;border:1px solid #1f2937;margin-left:auto}
+.pturn{font-size:8px;color:#fbbf24;font-weight:700;margin-left:3px}
+
+/* coaching history */
+.ch-row{display:flex;gap:7px;align-items:center;margin-bottom:5px}
+.ch-st{font-size:9px;color:#475569;text-transform:uppercase;min-width:38px}
+.ch-ac{font-size:11px;color:#94a3b8}
+
+/* hand-end modal */
+.hm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:998;display:flex;align-items:center;justify-content:center;padding:20px;animation:hm-fadein .18s ease}
+@keyframes hm-fadein{from{opacity:0}to{opacity:1}}
+.hm-box{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:24px 28px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.7);animation:hm-slidein .22s cubic-bezier(.22,.68,0,1.2);position:relative}
+.hm-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:#475569;font-size:18px;line-height:1;padding:2px 5px;border-radius:4px}
+.hm-close:hover{color:#94a3b8;background:#1f2937}
+@keyframes hm-slidein{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.hm-title{font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:12px}
+.hm-dec{padding:9px 11px;border-radius:7px;background:#0d1117;border:1px solid #1f2937;margin-bottom:6px}
+.hm-dec-row{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.hm-lesson{padding:14px 16px;border-radius:9px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.22);margin:16px 0 20px}
+.hm-lesson-lbl{font-size:9px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.hm-lesson-txt{font-size:14px;font-weight:600;color:#e2e8f0;line-height:1.6}
+.hm-btn{width:100%;padding:13px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.01em}
+.hm-btn:hover{background:#1d4ed8}
+
+/* showdown */
+.sd-p{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;margin-bottom:7px;border:1.5px solid #1f2937;background:#0d1117}
+.sd-p.winner{border-color:#f59e0b;background:rgba(245,158,11,.05)}
+.card-winner{border-color:#f59e0b!important;box-shadow:0 0 12px rgba(245,158,11,.8),0 0 4px rgba(245,158,11,.5),inset 0 0 4px rgba(245,158,11,.15)!important;z-index:1;position:relative}
+.card-dim{opacity:0.32;filter:grayscale(40%)}
+.win-reason{font-size:12px;font-weight:600;color:#fbbf24;padding:6px 10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;margin-bottom:10px;text-align:center}
+.sd-wl{color:#fbbf24;font-size:10px;font-weight:700}
+.sd-hd{font-size:10px;color:#64748b}
+.sd-recap{padding:9px 11px;border-radius:7px;background:#0d1117;border:1px solid #1f2937;margin-bottom:5px}
+.sd-rh{display:flex;gap:7px;align-items:center;margin-bottom:3px}
+.sd-rw{font-size:10px;color:#64748b;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <h1>Poker Trainer</h1>
+  <p>Play against AI opponents. Get GTO coaching with equity analysis after every decision.</p>
+  <span class="slabel">Opponents (1–4)</span>
+  <div class="opp-row" id="opp-row">
+    <button class="opp-btn" onclick="selOpp(1)">1</button>
+    <button class="opp-btn sel" onclick="selOpp(2)">2</button>
+    <button class="opp-btn" onclick="selOpp(3)">3</button>
+    <button class="opp-btn" onclick="selOpp(4)">4</button>
+  </div>
+  <span class="slabel">Ollama model</span>
+  <select id="model-sel">
+    <option value="gemma3:4b">gemma3:4b (recommended)</option>
+    <option value="gemma3:12b">gemma3:12b</option>
+    <option value="llama3.1">llama3.1</option>
+    <option value="llama3.1:70b">llama3.1:70b</option>
+    <option value="mistral">mistral</option>
+    <option value="deepseek-r1">deepseek-r1</option>
+  </select>
+  <p class="hint">Run: <code>ollama serve</code> · then: <code>ollama pull gemma3:4b</code></p>
+  <span class="slabel">Animations</span>
+  <div class="opp-row" id="anim-row">
+    <button class="opp-btn sel" onclick="setAnimSpeed('normal',this)">Normal</button>
+    <button class="opp-btn" onclick="setAnimSpeed('fast',this)">Fast</button>
+    <button class="opp-btn" onclick="setAnimSpeed('off',this)">Off</button>
+  </div>
+  <span class="slabel">Starting stack</span>
+  <div class="opp-row" id="stack-row">
+    <button class="opp-btn" onclick="selStack(200,this)">20bb</button>
+    <button class="opp-btn" onclick="selStack(500,this)">50bb</button>
+    <button class="opp-btn sel" onclick="selStack(1000,this)">100bb</button>
+    <button class="opp-btn" onclick="selStack(2000,this)">200bb</button>
+  </div>
+  <p class="hint" id="stack-hint">Full game — all streets and bet sizes matter equally.</p>
+  <span class="slabel">Bot personalities</span>
+  <div class="bot-row"><div class="av tight">TAG</div><div><div style="font-size:12px;font-weight:600;color:#e2e8f0">Tight-Aggressive</div><div style="font-size:10px;color:#64748b">Plays few hands, bets big when in</div></div></div>
+  <div class="bot-row"><div class="av loose">LAG</div><div><div style="font-size:12px;font-weight:600;color:#e2e8f0">Loose-Aggressive</div><div style="font-size:10px;color:#64748b">Wide range, constant pressure</div></div></div>
+  <div class="bot-row"><div class="av maniac">MAN</div><div><div style="font-size:12px;font-weight:600;color:#e2e8f0">Maniac</div><div style="font-size:10px;color:#64748b">Raises almost everything</div></div></div>
+  <div class="bot-row" style="margin-bottom:20px"><div class="av calling">STA</div><div><div style="font-size:12px;font-weight:600;color:#e2e8f0">Calling Station</div><div style="font-size:10px;color:#64748b">Calls almost every bet</div></div></div>
+  <button class="deal-btn" onclick="startGame()">Deal First Hand</button>
+  <p style="text-align:center;margin-top:14px"><a href="/static/learn.html" target="_blank" style="font-size:12px;color:#34d399;text-decoration:none">Learn poker basics →</a></p>
+</div>
+
+<!-- GAME -->
+<div id="game" style="display:none">
+  <div class="wrap">
+    <div class="header">
+      <h2>Poker Trainer</h2>
+      <span class="hnum" id="hnum">Hand #1</span><span class="wl" id="wl" style="display:none"><span class="w" id="wl-w">0</span>W–<span class="l" id="wl-l">0</span>L</span>
+      <div class="pills" id="pills"></div>
+      <button class="settings-btn" onclick="showSetup()">Settings</button>
+      <button class="settings-btn" onclick="window.open('/static/learn.html','_blank')" style="color:#34d399;border-color:#064e3b">Learn</button>
+      <button class="summary-btn" onclick="downloadSummary()" id="summary-hdr-btn" style="display:none">Save Summary</button>
+    </div>
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="col">
+        <div class="felt" id="felt"></div>
+        <div class="panel" id="action-area"></div>
+      </div>
+      <!-- RIGHT -->
+      <div class="col">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span class="sec" style="margin:0">AI Coach</span>
+            <span id="model-tag" style="font-size:9px;color:#374151;background:#1f2937;padding:1px 7px;border-radius:8px"></span>
+          </div>
+          <div class="panel" id="coach-panel"><div class="coach-empty">Make a decision to get GTO coaching</div></div>
+        </div>
+        <div class="panel">
+          <div class="sec">Action log</div>
+          <div class="log-box" id="log-box"></div>
+        </div>
+        <div class="panel" id="draws-panel" style="display:none">
+          <div class="sec">Draws & outs</div>
+          <div id="draws-content"></div>
+        </div>
+        <div class="panel" id="player-list"></div>
+        <div id="chart-panel"></div>
+        <div id="ch-panel" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state=null, coaching=null, coachHistory=[], eqInfo=null;
+let mcRunId=null, mcPollTimer=null, mcEquity=null;
+let numOpp=2, selModel='gemma3:4b';
+let showRaise=false, raiseAmt=20, isProc=false;
+let sessionWins=0, sessionLosses=0, lastRecordedHand=0;
+let animSpeed='normal', lastDealtHand=0, prevCommCount=0;
+let startingStack=1000, stackHistory=[];
+let hintUsed=false, hintText=null, hintLoading=false;
+const STACK_HINTS={
+  200:'Mostly push-or-fold decisions — premium hands only.',
+  500:'Some post-flop play, but big bets often commit your whole stack.',
+  1000:'Full game — all streets and bet sizes matter equally.',
+  2000:'Deep play — position and reads compound over many streets.',
+};
+const SUITS={'s':'♠','h':'♥','d':'♦','c':'♣'};
+const RED=new Set(['h','d']);
+const TAGS={tight:'TAG',loose:'LAG',maniac:'MAN',calling:'STA'};
+
+// ── setup ─────────────────────────────────────────────────────────────────────
+function selOpp(n){
+  numOpp=n;
+  document.querySelectorAll('#opp-row .opp-btn').forEach((b,i)=>b.classList.toggle('sel',i+1===n));
+}
+function setAnimSpeed(v,btn){
+  animSpeed=v;
+  document.querySelectorAll('#anim-row .opp-btn').forEach(b=>b.classList.remove('sel'));
+  if(btn) btn.classList.add('sel');
+  document.body.classList.toggle('anim-fast', v==='fast');
+}
+function selStack(n,btn){
+  startingStack=n;
+  document.querySelectorAll('#stack-row .opp-btn').forEach(b=>b.classList.remove('sel'));
+  if(btn) btn.classList.add('sel');
+  const el=document.getElementById('stack-hint');
+  if(el) el.textContent=STACK_HINTS[n]||'';
+}
+async function startGame(){
+  selModel=document.getElementById('model-sel').value;
+  await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({num_opponents:numOpp,model:selModel,starting_stack:startingStack})});
+  stackHistory=[{hand:0,stack:startingStack,mistake:false}]; // seed chart baseline
+  await dealHand();
+  document.getElementById('setup').style.display='none';
+  document.getElementById('game').style.display='block';
+}
+function showSetup(){
+  document.getElementById('setup').style.display='block';
+  document.getElementById('game').style.display='none';
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function dealHand(){
+  coachHistory=[];coaching=null;eqInfo=null;showRaise=false;
+  hintUsed=false;hintText=null;hintLoading=false;
+  state=await(await fetch('/api/deal',{method:'POST'})).json();
+  render();
+  if(!state.players[state.current_player_idx].is_human) await runBots();
+  else await fetchEq();
+}
+async function fetchEq(){
+  try{
+    hintUsed=false;hintText=null;hintLoading=false;
+    eqInfo=await(await fetch('/api/equity')).json();
+    mcEquity=null;
+    renderActionArea();renderDraws();
+    // start polling for MC result
+    if(eqInfo&&eqInfo.mc_run_id){
+      mcRunId=eqInfo.mc_run_id;
+      startMcPoll();
+    }
+  }catch{}
+}
+
+function startMcPoll(){
+  if(mcPollTimer) clearInterval(mcPollTimer);
+  mcPollTimer=setInterval(async()=>{
+    if(!mcRunId){clearInterval(mcPollTimer);return;}
+    try{
+      const r=await(await fetch('/api/mc-equity?run_id='+mcRunId)).json();
+      if(r.done){
+        mcEquity=r.equity;
+        clearInterval(mcPollTimer);mcPollTimer=null;
+        renderActionArea(); // refresh to show MC result
+        console.log('[MC DONE] equity='+r.equity+'% in '+r.ms+'ms');
+      }
+    }catch{clearInterval(mcPollTimer);}
+  },350);
+}
+async function sendAction(action,amount=null){
+  if(isProc)return;
+  isProc=true;showRaise=false;renderActionArea();
+  try{
+    const d=await(await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,amount})})).json();
+    state=d.state;coaching=d.coaching;eqInfo=d.equity_info;
+    coachHistory=state.coaching_history||[];
+    render();
+    if(state.phase==='playing'&&!state.players[state.current_player_idx].is_human) await runBots();
+  }finally{isProc=false;}
+}
+async function runBots(){
+  const MAX=state.players.length*8;
+  let n=0;
+  while(true){
+    n++;
+    if(n>MAX){
+      console.warn('bot chain safety cap');
+      state=await(await fetch('/api/state')).json();render();break;
+    }
+    if(state.phase!=='playing')break;
+    if(!state.players[state.current_player_idx])break;
+    if(state.players[state.current_player_idx].is_human)break;
+    setWaiting(true);
+    try{
+      const d=await(await fetch('/api/bot-action',{method:'POST'})).json();
+      state=d.state;coachHistory=state.coaching_history||[];
+      render();
+      if(d.done)break;
+      await sleep(280);
+    }catch{break;}
+  }
+  setWaiting(false);
+  if(state.phase==='playing') await fetchEq();
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+let _waiting=false;
+function setWaiting(v){_waiting=v;}
+
+// ── math helpers ──────────────────────────────────────────────────────────────
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+function potOddsRatio(tCall,pot){
+  if(tCall<=0)return'—';
+  const g=gcd(pot,tCall);
+  return`${pot/g}:${tCall/g}`;
+}
+
+// ── render master ─────────────────────────────────────────────────────────────
+function render(){
+  if(!state)return;
+
+  // W/L + stack chart tracking — record each hand exactly once when it reaches showdown
+  if(state.phase==='showdown'&&state.hand_number>lastRecordedHand){
+    lastRecordedHand=state.hand_number;
+    const human=state.players.find(p=>p.is_human);
+    const humanId=human?.id??0;
+    if(state.winners.includes(humanId)) sessionWins++;
+    else sessionLosses++;
+    const wlEl=document.getElementById('wl');
+    if(wlEl) wlEl.style.display='';
+    const wW=document.getElementById('wl-w'),wL=document.getElementById('wl-l');
+    if(wW) wW.textContent=sessionWins;
+    if(wL) wL.textContent=sessionLosses;
+    // chip history for sparkline
+    const hasMistake=(state.coaching_history||[]).some(d=>d.coaching?.verdict==='mistake');
+    stackHistory.push({hand:state.hand_number, stack:human?.stack??0, mistake:hasMistake});
+    // show hand-end coaching modal after a brief render delay
+    setTimeout(showHandModal, 220);
+  }
+
+  document.getElementById('hnum').textContent=`Hand #${state.hand_number}`;
+  document.getElementById('model-tag').textContent=state.model;
+  renderPills();renderFelt();renderActionArea();renderLog();renderCoach();renderPlayers();renderChHistory();renderChartPanel();
+  updateSummaryBtn();
+}
+function renderPills(){
+  const streets=['preflop','flop','turn','river'];
+  document.getElementById('pills').innerHTML=streets.map(s=>`<span class="pill ${s===state.street||(state.phase==='showdown'&&s==='river')?'active':''}">${s}</span>`).join('');
+}
+
+// ── position labels ───────────────────────────────────────────────────────────
+function getPositions(n, dealerIdx){
+  const pos={};
+  if(n===2){
+    pos[dealerIdx%n]='BTN/SB';
+    pos[(dealerIdx+1)%n]='BB';
+  } else {
+    const labels=['BTN','SB','BB','UTG','CO','MP'];
+    for(let offset=0;offset<Math.min(n,labels.length);offset++)
+      pos[(dealerIdx+offset)%n]=labels[offset];
+  }
+  return pos;
+}
+
+// ── felt ──────────────────────────────────────────────────────────────────────
+function renderFelt(){
+  const felt=document.getElementById('felt');
+  const W=felt.clientWidth||700,H=felt.clientHeight||400;
+  const cx=W/2,cy=H/2,rx=cx*.72,ry=cy*.68;
+  const n=state.players.length;
+  const positions=getPositions(n, state.dealer_idx||0);
+
+  // ── animation tracking ──────────────────────────────────────────────────────
+  const animOn=animSpeed!=='off';
+  const flipDelay=animSpeed==='fast'?40:80;   // ms between flop cards
+  const dealDelay=animSpeed==='fast'?40:70;   // ms between hole cards
+
+  // hole cards: new only on first render of a new hand number
+  const holeNew=animOn&&state.hand_number>lastDealtHand;
+  if(holeNew) lastDealtHand=state.hand_number;
+
+  // community cards: new when visible count increases
+  const curComm=state.community.filter(Boolean).length;
+  const commNewFrom=animOn&&curComm>prevCommCount?prevCommCount:-1;
+  prevCommCount=curComm;
+
+  // ── showdown: winner's best_five for community highlight ───────────────────
+  const isShowdown=state.phase==='showdown';
+  const sdWinner=isShowdown?state.players.find(p=>state.winners.includes(p.id)&&p.best_five):null;
+  const winBestFive=sdWinner?.best_five?new Set(sdWinner.best_five):null;
+
+  // ── community ───────────────────────────────────────────────────────────────
+  const commCards=state.community.map((c,idx)=>{
+    if(!c)return`<div class="card lg empty"></div>`;
+    const isNew=commNewFrom>=0&&idx>=commNewFrom;
+    let cls=isNew?'card-anim-flip':'';
+    if(winBestFive) cls+=(winBestFive.has(c.raw)?' card-winner':' card-dim');
+    return cHtml(c,true,cls.trim(),isNew?`${(idx-commNewFrom)*flipDelay}ms`:'');
+  }).join('');
+
+  const commHtml=`<div class="community" style="left:${cx}px;top:${cy}px">
+    <div class="cards">${commCards}</div>
+    <div style="text-align:center;margin-top:5px"><span class="pot-lbl">Pot </span><span class="pot-amt">$${state.pot}</span></div>
+  </div>`;
+
+  // ── seats ───────────────────────────────────────────────────────────────────
+  let seats='';
+  state.players.forEach((p,i)=>{
+    const ang=(2*Math.PI/n)*i-Math.PI/2;
+    const sx=Math.round(cx+rx*Math.cos(ang)),sy=Math.round(cy+ry*Math.sin(ang));
+    const isAct=i===state.current_player_idx&&state.phase==='playing';
+    const isWin=state.winners.includes(p.id);
+    const posLabel=positions[i]||'';
+
+    let holes;
+    if(p.is_human){
+      holes=p.cards_display.map((c,ci)=>
+        cHtml(c,false,holeNew?'card-anim-deal':'',holeNew&&ci>0?`${dealDelay}ms`:'')
+      ).join('');
+    } else if(isShowdown&&!p.folded){
+      // highlight best_five at showdown; dim the others
+      const pWinSet=isWin&&p.best_five?new Set(p.best_five):null;
+      holes=p.cards_display.map(c=>{
+        const cls=pWinSet?(pWinSet.has(c.raw)?'card-winner':'card-dim'):'card-dim';
+        return cHtml(c,false,cls);
+      }).join('');
+    } else if(p.folded){
+      holes='';
+    } else {
+      const ac=holeNew?'card-anim-deal':'';
+      holes=`<div class="card sm back ${ac}"></div>`
+           +`<div class="card sm back ${ac}" ${holeNew?`style="animation-delay:${dealDelay}ms"`:''} ></div>`;
+    }
+
+    const badge=isWin&&isShowdown?`<span class="seat-act sa-winner">WIN</span>`
+      :p.last_action?`<span class="seat-act sa-${p.last_action}">${getActionLabel(p)}</span>`:'';
+    const think=isAct&&!p.is_human?`<div class="thinking"><span class="td"></span><span class="td"></span><span class="td"></span></div>`:'';
+    seats+=`<div class="seat" style="left:${sx}px;top:${sy}px">
+      ${posLabel?`<div class="seat-pos">${posLabel}</div>`:''}
+      <div class="seat-av ${p.personality} ${isAct?'active':''} ${p.folded?'folded':''}">${p.is_human?'YOU':p.name.slice(0,3).toUpperCase()}</div>
+      <div class="seat-name">${p.is_human?'You':p.name} $${p.stack}</div>
+      ${!p.is_human&&p.bot_stats?`<div class="seat-stats">${fmtBotStats(p.bot_stats)}</div>`:''}
+      <div class="cards">${holes}</div>
+      ${think}${badge}
+    </div>`;
+  });
+  felt.innerHTML=commHtml+seats;
+}
+function cHtml(c,lg=false,animCls='',animDelay=''){
+  if(!c)return`<div class="card ${lg?'lg':'sm'} empty"></div>`;
+  const cls=`card ${lg?'lg':'sm'} ${RED.has(c.suit)?'red':'black'}${animCls?' '+animCls:''}`;
+  const sty=animDelay?` style="animation-delay:${animDelay}"`:'';
+  return`<div class="${cls}"${sty}><span>${c.rank}</span><span style="font-size:${lg?15:12}px">${c.symbol}</span></div>`;
+}
+
+// ── action area ───────────────────────────────────────────────────────────────
+function renderActionArea(){
+  const el=document.getElementById('action-area');
+  if(!state)return;
+  if(state.phase==='showdown'){el.innerHTML=renderShowdown();return;}
+  const human=state.players.find(p=>p.is_human);
+  if(!human)return;
+  const isMyTurn=state.players[state.current_player_idx]?.is_human&&!isProc&&!_waiting;
+  const eq=eqInfo;
+
+  // stats
+  let statsHtml=`<div class="stats">
+    <div class="stat"><div class="s-lbl">Pot</div><div class="s-val" style="color:#fbbf24">$${state.pot}</div></div>
+    <div class="stat"><div class="s-lbl">To call</div><div class="s-val" style="color:#34d399">$${state.to_call}</div></div>
+    <div class="stat"><div class="s-lbl">Stack</div><div class="s-val">$${human.stack}</div></div>
+    ${eq?`<div class="stat"><div class="s-lbl">Hand</div><div class="s-val" style="font-size:12px;color:#94a3b8">${eq.hand_desc||'—'}</div></div>`:''}
+  </div>
+  ${eq&&eq.hand_label?`<div style="font-size:10px;font-weight:600;color:${strengthColor(eq.hand_tier)};margin:-4px 0 9px;padding:2px 8px;background:${strengthBg(eq.hand_tier)};border-radius:4px;display:inline-block;border:1px solid ${strengthBorder(eq.hand_tier)}">${eq.hand_label}</div>`:''}
+  `;
+
+  // equity display
+  let eqHtml='';
+  if(eq&&eq.equity_pct!=null){
+    const isPreflop=state.street==='preflop';
+    if(isPreflop){
+      // Preflop: MC only — outs don't exist yet
+      const displayEq=mcEquity!=null?mcEquity:null;
+      const profitable=displayEq!=null?(state.to_call>0?displayEq>=eq.req_equity:true):null;
+      const fc=profitable==null?'#374151':profitable?'#2563eb':'#dc2626';
+      const hint=displayEq==null?'Simulating...'
+        :state.to_call>0?(profitable?`Profitable (+${displayEq-eq.req_equity}% over threshold)`:`Unprofitable (${eq.req_equity-displayEq}% short)`)
+        :`${displayEq}% win chance`;
+      eqHtml=`
+        <div class="eq-row">
+          <div class="eq-block">
+            <div class="eq-title">Win probability <span style="color:#374151">(Monte Carlo)</span></div>
+            <div class="eq-val" style="color:#a78bfa">${displayEq!=null?displayEq+'%':'...'}</div>
+            <div class="eq-sub" style="color:${displayEq==null?'#374151':'#475569'}">${displayEq!=null?'400 simulations':'calculating...'}</div>
+          </div>
+          ${state.to_call>0&&eq.req_equity!=null?`<div class="eq-block"><div class="eq-title">Pot odds</div><div class="eq-val" style="color:#94a3b8">${potOddsRatio(state.to_call,state.pot)}</div><div class="eq-sub">need ${eq.req_equity}% to call</div></div>`:''}
+        </div>
+        ${displayEq!=null?`<div class="eq-bar"><div class="eq-fill" style="width:${displayEq}%;background:${fc}"></div></div>`:''}
+        <div class="eq-hint" style="color:${profitable==null?'#475569':profitable||state.to_call===0?'#34d399':'#f87171'}">${hint}</div>`;
+    } else {
+      const profitable=eq.profitable;
+      const fc=profitable?'#2563eb':'#dc2626';
+      const hint=state.to_call>0?(profitable?`Profitable (+${eq.equity_pct-eq.req_equity}% over threshold)`:`Unprofitable (${eq.req_equity-eq.equity_pct}% short)`):`${eq.equity_pct}% equity`;
+      eqHtml=`
+        <div class="eq-row">
+          <div class="eq-block">
+            <div class="eq-title">Outs-based equity <span style="color:#374151">(rule of 2&4)</span></div>
+            <div class="eq-val">${eq.equity_pct}%</div>
+            <div class="eq-sub">${eq.total_outs||0} outs detected</div>
+          </div>
+          <div class="eq-block">
+            <div class="eq-title">Monte Carlo <span style="color:#374151">(600 sims)</span></div>
+            <div class="eq-val" style="color:#a78bfa">${mcEquity!=null?mcEquity+'%':'...'}</div>
+            <div class="eq-sub" style="color:${mcEquity==null?'#374151':'#475569'}">${mcEquity!=null?'background sim':'running...'}</div>
+          </div>
+          ${state.to_call>0?`<div class="eq-block"><div class="eq-title">Pot odds</div><div class="eq-val" style="color:#94a3b8">${potOddsRatio(state.to_call,state.pot)}</div><div class="eq-sub">need ${eq.req_equity}% to call</div></div>`:''}
+        </div>
+        <div class="eq-bar"><div class="eq-fill" style="width:${eq.equity_pct}%;background:${fc}"></div></div>
+        <div class="eq-hint" style="color:${profitable||state.to_call===0?'#34d399':'#f87171'}">${hint}</div>`;
+    }
+  }
+
+  // actions
+  let actHtml='';
+  if(!isMyTurn){
+    actHtml=`<div class="waiting"><span class="td"></span><span class="td"></span><span class="td"></span><span>${_waiting?'Opponent thinking...':(isProc?'Analyzing your decision...':'Waiting for your action...')}</span></div>`;
+  } else {
+    raiseAmt=raiseAmt||state.min_raise;
+    const canCheck=state.to_call===0;
+    let rp='';
+    if(showRaise){
+      const pot=state.pot;
+      const sizes=[{l:'½p',v:Math.max(state.min_raise,Math.floor(pot*.5))},{l:'¾p',v:Math.max(state.min_raise,Math.floor(pot*.75))},{l:'Pot',v:Math.max(state.min_raise,pot)},{l:'All-in',v:human.stack}];
+      rp=`<div class="raise-panel">
+        <div class="rp-top"><span>Raise to</span><span id="rv">$${raiseAmt}</span></div>
+        <input type="range" id="rsl" min="${state.min_raise}" max="${human.stack}" value="${raiseAmt}" step="5" oninput="updRaise(this.value)">
+        <div class="sz-row">${sizes.map(s=>`<button class="sz-btn" onclick="setRaise(${Math.min(s.v,human.stack)})">${s.l}</button>`).join('')}</div>
+        <button class="conf-btn" onclick="confRaise()">Confirm ${state.to_call>0?'raise':'bet'} to $${raiseAmt}</button>
+      </div>`;
+    }
+    const hintBoxHtml=hintLoading
+      ?`<div class="hint-loading"><div class="thinking"><span class="td"></span><span class="td"></span><span class="td"></span></div><span>Getting hint...</span></div>`
+      :hintText?`<div class="hint-box">${hintText}</div>`:'';
+    actHtml=`${hintBoxHtml}<div class="action-row">
+      <button class="abtn fold" onclick="sendAction('fold')">Fold<sub>give up</sub></button>
+      ${canCheck?`<button class="abtn call" style="border-color:#78350f;color:#fbbf24" onclick="sendAction('check')">Check<sub>free</sub></button>`:`<button class="abtn call" onclick="sendAction('call')">Call<sub>$${Math.min(state.to_call,human.stack)}</sub></button>`}
+      <button class="abtn raise" onclick="togRaise()">${showRaise?'Cancel':'Raise'}<sub>$${state.min_raise}+</sub></button>
+    </div>
+    <button class="hint-btn" onclick="getHint()" ${hintUsed?'disabled':''}>${hintLoading?'Getting hint…':hintUsed?'Hint used':'Hint'}</button>
+    ${rp}`;
+  }
+  el.innerHTML=statsHtml+eqHtml+actHtml;
+}
+
+// ── draws panel ───────────────────────────────────────────────────────────────
+function renderDraws(){
+  const panel=document.getElementById('draws-panel');
+  const content=document.getElementById('draws-content');
+  if(!eqInfo||!eqInfo.draws||state?.street==='preflop'){panel.style.display='none';return;}
+  const draws=eqInfo.draws;
+  if(!draws.length){
+    panel.style.display='block';
+    content.innerHTML=`<div class="no-draws">No draws detected — play your made hand</div>`;
+    return;
+  }
+  panel.style.display='block';
+  content.innerHTML=`<div class="draws-grid">${draws.map(d=>`
+    <div class="draw-row">
+      <div class="draw-name">${d.name}</div>
+      <div class="draw-outs">${d.outs} outs</div>
+      <div class="draw-eq">Turn ${d.equity_turn}% · River ${d.equity_river}%</div>
+    </div>`).join('')}
+    ${eqInfo.total_outs>0?`<div style="font-size:10px;color:#475569;padding:4px 2px">~${eqInfo.total_outs} combined outs</div>`:''}
+  </div>`;
+}
+
+// ── showdown ──────────────────────────────────────────────────────────────────
+function renderShowdown(){
+  const active=state.players.filter(p=>!p.folded);
+  const folded=state.players.filter(p=>p.folded);
+  const allP=[...active,...folded].map(p=>{
+    const isW=state.winners.includes(p.id);
+    // Build set of winning card strings for this player so we can highlight them
+    const winSet=isW&&p.best_five?new Set(p.best_five):null;
+    const cards=p.cards_display.map(c=>{
+      let cls;
+      if(isW) cls=winSet&&winSet.has(c.raw)?'card-winner':'card-dim';
+      else cls='card-dim';
+      return cHtml(c,false,cls);
+    }).join('');
+    const handLabel=p.hand_desc?`<div class="sd-hd">${p.hand_desc}</div>`:'';
+    return`<div class="sd-p ${isW?'winner':''}">
+      <div class="seat-av ${p.personality}" style="width:30px;height:30px;font-size:9px;flex-shrink:0">${p.is_human?'YOU':p.name.slice(0,3).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="sd-wl">${p.name}${isW?` · wins $${Math.floor(state.pot/state.winners.length)}`:p.folded?' · folded':''}</div>
+        ${handLabel}
+      </div>
+      <div class="cards">${p.folded?'':cards}</div>
+    </div>`;
+  }).join('');
+  const reasonHtml=state.win_reason?`<div class="win-reason">${state.win_reason}</div>`:'';
+  let recap='';
+  if(coachHistory.length){
+    recap=`<div style="margin-top:12px"><div class="sec">Hand recap · ${coachHistory.length} decision${coachHistory.length>1?'s':''}</div>
+    ${coachHistory.map(c=>`<div class="sd-recap"><div class="sd-rh">
+      <span class="ch-st">${c.street}</span><span class="ch-ac">→ ${c.action}</span>
+      <span class="vbadge ${vc(c.coaching.verdict)}" style="font-size:9px;padding:1px 7px;margin:0">${c.coaching.verdictText}</span>
+    </div><div class="sd-rw">${c.coaching.why}</div></div>`).join('')}</div>`;
+  }
+  return`<div class="sec">Showdown</div>${reasonHtml}${allP}${recap}<button class="next-btn" onclick="showHandModal()" style="margin-top:12px">Review Hand &amp; Continue →</button><button class="next-btn-sec" onclick="downloadSummary()">Save Session Summary (.txt)</button>`;
+}
+
+// ── log ───────────────────────────────────────────────────────────────────────
+function renderLog(){
+  const box=document.getElementById('log-box');
+  box.innerHTML=state.log.map(e=>`<div class="le ${e.type}">${e.text}${e.thought?`<span class="thought">(${e.thought})</span>`:''}</div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+
+// ── coach ─────────────────────────────────────────────────────────────────────
+function renderCoach(){
+  const el=document.getElementById('coach-panel');
+  if(isProc&&!coaching){el.innerHTML=`<div class="coach-loading"><div class="thinking"><span class="td"></span><span class="td"></span><span class="td"></span></div><span>Coach analyzing...</span></div>`;return;}
+  if(!coaching){el.innerHTML=`<div class="coach-empty">Make a decision to get GTO coaching</div>`;return;}
+  el.innerHTML=`<div class="vbadge ${vc(coaching.verdict)}">${coaching.verdictText}</div>
+    ${coaching.equity!=null?`<div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:3px"><span>Equity at decision</span><span style="color:#60a5fa;font-weight:700">${coaching.equity}%</span></div>
+      <div class="eq-bar"><div class="eq-fill" style="width:${coaching.equity}%;background:#2563eb"></div></div>
+    </div>`:''}
+    <div class="cs"><div class="cs-t">Why</div><div class="cs-b">${coaching.why}</div></div>
+    <div class="cs hi"><div class="cs-t">Optimal play</div><div class="cs-b">${coaching.optimal}</div></div>
+    <div class="cs"><div class="cs-t">GTO reasoning</div><div class="cs-b">${coaching.reasoning}</div></div>`;
+}
+
+// ── players ───────────────────────────────────────────────────────────────────
+function renderPlayers(){
+  const el=document.getElementById('player-list');
+  el.innerHTML=`<div class="sec">At the table</div>${state.players.map((p,i)=>`
+    <div class="pl-row" style="opacity:${p.folded?.35:1}">
+      <div class="av ${p.personality} ${i===state.current_player_idx&&state.phase==='playing'?'active':''}" style="width:28px;height:28px;font-size:9px">${p.is_human?'YOU':p.name.slice(0,3).toUpperCase()}</div>
+      <div class="pl-info">
+        <div class="pn" style="color:${state.winners.includes(p.id)?'#fbbf24':'#e2e8f0'}">${p.is_human?'You':p.name}${state.winners.includes(p.id)?' ★':''}</div>
+        <div class="pd">$${p.stack} · ${p.folded?'folded':p.last_action||'—'}</div>
+      </div>
+      ${!p.is_human?`<span class="ptag">${TAGS[p.personality]||p.personality}</span>`:''}
+      ${i===state.current_player_idx&&state.phase==='playing'?`<span class="pturn">TURN</span>`:''}
+    </div>`).join('')}`;
+}
+
+// ── coaching history ──────────────────────────────────────────────────────────
+function renderChHistory(){
+  const el=document.getElementById('ch-panel');
+  if(!coachHistory.length||state.phase==='showdown'){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML=`<div class="panel"><div class="sec">This hand · ${coachHistory.length} decision${coachHistory.length>1?'s':''}</div>
+    ${coachHistory.map(c=>`<div class="ch-row">
+      <span class="ch-st">${c.street}</span>
+      <span class="ch-ac">${c.action}</span>
+      <span class="vbadge ${vc(c.coaching.verdict)}" style="font-size:9px;padding:1px 7px;margin:0">${c.coaching.verdictText}</span>
+    </div>`).join('')}</div>`;
+}
+function renderChartPanel(){
+  const el=document.getElementById('chart-panel');
+  if(!el) return;
+  const html=renderStackChart();
+  if(html){
+    el.innerHTML=`<div class="panel">${html}</div>`;
+  } else {
+    el.innerHTML='';
+  }
+}
+
+// ── action helpers ────────────────────────────────────────────────────────────
+function sendAction(a){sendPlayerAction(a);}
+async function sendPlayerAction(a,amt=null){await sendAction_inner(a,amt);}
+async function sendAction_inner(a,amt){await sendAction(a,amt);}
+
+// override the above with the real one
+window.sendAction=async function(a,amt=null){await sendAction_real(a,amt);}
+async function sendAction_real(a,amt=null){
+  if(isProc)return;
+  isProc=true;showRaise=false;mcRunId=null;
+  if(mcPollTimer){clearInterval(mcPollTimer);mcPollTimer=null;}
+  renderActionArea();
+  try{
+    const d=await(await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:a,amount:amt})})).json();
+    state=d.state;coaching=d.coaching;eqInfo=d.equity_info;
+    coachHistory=state.coaching_history||[];
+    render();renderDraws();
+    if(state.phase==='playing'){
+      const cur=state.players[state.current_player_idx];
+      if(!cur.is_human){
+        await runBots();
+      } else {
+        // it is our turn again (new street) — fetch fresh equity
+        await fetchEq();
+      }
+    }
+  }finally{isProc=false;render();}
+}
+
+async function getHint(){
+  if(hintUsed||hintLoading)return;
+  hintUsed=true;hintLoading=true;
+  renderActionArea();
+  try{
+    const r=await(await fetch('/api/hint')).json();
+    hintText=r.hint||'Think carefully about whether the numbers favour continuing here.';
+  }catch{
+    hintText='Could not get a hint — check that Ollama is running.';
+  }finally{
+    hintLoading=false;
+    renderActionArea();
+  }
+}
+function togRaise(){showRaise=!showRaise;raiseAmt=state.min_raise;renderActionArea();}
+function updRaise(v){
+  raiseAmt=parseInt(v);
+  const d=document.getElementById('rv'),b=document.querySelector('.conf-btn');
+  if(d)d.textContent=`$${raiseAmt}`;
+  if(b)b.textContent=`Confirm ${state.to_call>0?'raise':'bet'} to $${raiseAmt}`;
+}
+function setRaise(v){raiseAmt=v;const s=document.getElementById('rsl');if(s)s.value=v;updRaise(v);}
+function confRaise(){window.sendAction(state.to_call>0?'raise':'bet',raiseAmt);showRaise=false;}
+function vc(v){return v==='optimal'?'v-optimal':v==='mistake'?'v-mistake':'v-acceptable';}
+
+// ── action badge label ────────────────────────────────────────────────────────
+function getActionLabel(p){
+  const action=p.last_action;
+  if(!action)return'';
+  if(action==='fold')return'FOLD';
+  if(action==='check')return'CHECK';
+  // find the most recent log entry for this player and extract any dollar amount
+  const name=p.is_human?'You':p.name;
+  const entries=(state.log||[]).filter(e=>
+    (e.type==='bot'||e.type==='player')&&e.text&&
+    e.text.toLowerCase().startsWith(name.toLowerCase())
+  );
+  if(entries.length){
+    const m=entries[entries.length-1].text.match(/\$(\d+)/);
+    if(m){
+      if(action==='raise')return`RAISE $${m[1]}`;
+      if(action==='bet')return`BET $${m[1]}`;
+      if(action==='call')return`CALL $${m[1]}`;
+    }
+  }
+  return action.toUpperCase();
+}
+
+// ── session chip sparkline ────────────────────────────────────────────────────
+function renderStackChart(){
+  if(stackHistory.length<2) return '';
+  const data=stackHistory;
+  const stacks=data.map(d=>d.stack);
+  const rawMin=Math.min(...stacks), rawMax=Math.max(...stacks);
+  const pad=Math.max((rawMax-rawMin)*0.18, 80);
+  const yBot=rawMin-pad, yTop=rawMax+pad, yRange=yTop-yBot;
+  const n=data.length;
+  const W=360,H=90,PL=40,PR=8,PT=8,PB=22;
+  const cW=W-PL-PR, cH=H-PT-PB;
+  const xp=i=>PL+(n>1?i/(n-1):0.5)*cW;
+  const yp=s=>PT+cH-((s-yBot)/yRange)*cH;
+  const fmt=v=>v>=1000?`${(v/1000).toFixed(1)}k`:`${v}`;
+
+  // polyline points
+  const pts=data.map((d,i)=>`${xp(i).toFixed(1)},${yp(d.stack).toFixed(1)}`).join(' ');
+  const fillPts=`${xp(0).toFixed(1)},${(PT+cH).toFixed(1)} ${pts} ${xp(n-1).toFixed(1)},${(PT+cH).toFixed(1)}`;
+
+  // baseline (starting stack = first point)
+  const baseY=yp(stacks[0]).toFixed(1);
+
+  // dots
+  const dots=data.map((d,i)=>{
+    const cx=xp(i).toFixed(1),cy=yp(d.stack).toFixed(1);
+    return d.mistake
+      ?`<circle cx="${cx}" cy="${cy}" r="5" fill="#f87171" stroke="#450a0a" stroke-width="1.2"/>`
+      :`<circle cx="${cx}" cy="${cy}" r="${i===0||i===n-1?3.5:2.5}" fill="${i===0||i===n-1?'#60a5fa':'#1d4ed8'}"/>`;
+  }).join('');
+
+  // x-axis hand labels — first, last, and every mistake
+  const xLabels=data.map((d,i)=>{
+    if(i===0||i===n-1||d.mistake)
+      return`<text x="${xp(i).toFixed(1)}" y="${(PT+cH+14).toFixed(1)}" text-anchor="middle" font-size="7" fill="#475569">#${d.hand}</text>`;
+    return'';
+  }).join('');
+
+  const curStack=stacks[n-1], startStack=stacks[0];
+  const delta=curStack-startStack;
+  const deltaCol=delta>=0?'#34d399':'#f87171';
+  const deltaStr=delta>=0?`+$${delta}`:`-$${Math.abs(delta)}`;
+
+  return`<div style="margin-top:12px;border-top:1px solid #1f2937;padding-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <span class="sec" style="margin:0">Chip history</span>
+      <span style="font-size:10px;font-weight:700;color:${deltaCol}">${deltaStr} this session</span>
+    </div>
+    <div style="background:#0d1117;border:1px solid #1f2937;border-radius:7px;padding:6px 2px 2px">
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
+        <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT+cH}" stroke="#1f2937" stroke-width="1"/>
+        <line x1="${PL}" y1="${PT+cH}" x2="${PL+cW}" y2="${PT+cH}" stroke="#1f2937" stroke-width="1"/>
+        <line x1="${PL}" y1="${baseY}" x2="${PL+cW}" y2="${baseY}" stroke="#374151" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="${PL-3}" y="${(PT+5).toFixed(1)}" text-anchor="end" font-size="7" fill="#475569">${fmt(rawMax)}</text>
+        <text x="${PL-3}" y="${(PT+cH+1).toFixed(1)}" text-anchor="end" font-size="7" fill="#475569">${fmt(rawMin)}</text>
+        <polygon points="${fillPts}" fill="rgba(59,130,246,.07)"/>
+        <polyline points="${pts}" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${xLabels}
+      </svg>
+      <div style="font-size:8px;color:#374151;text-align:right;padding-right:6px;padding-bottom:2px">
+        <span style="color:#f87171">●</span> mistake hand &nbsp;
+        <span style="color:#60a5fa">●</span> clean hand
+      </div>
+    </div>
+  </div>`;
+}
+function fmtBotStats(s){
+  if(!s||s.total<1) return s&&s.hands>0?`${s.hands}h · no actions yet`:'';
+  const r=Math.round(s.raises/s.total*100);
+  const f=Math.round(s.folds/s.total*100);
+  const c=Math.max(0,100-r-f);
+  const rStr=r===0?'never raises':r>=90?'always raises':`raises ${r}%`;
+  const fStr=f===0?'never folds':f>=90?'always folds':`folds ${f}%`;
+  const cStr=c===0?'never calls':c>=90?'always calls':`calls ${c}%`;
+  const hands=s.hands>1?`${s.hands}h · `:'';
+  return `${hands}${rStr} · ${fStr}`;
+}
+// tier 1=nuts 2=very strong 3=vulnerable 4=medium 5=weak
+function strengthColor(t){return['','#f59e0b','#34d399','#60a5fa','#fbbf24','#f87171'][t]||'#64748b';}
+function strengthBg(t){return['','rgba(245,158,11,.08)','rgba(52,211,153,.08)','rgba(96,165,250,.08)','rgba(251,191,36,.07)','rgba(248,113,113,.08)'][t]||'transparent';}
+function strengthBorder(t){return['','rgba(245,158,11,.25)','rgba(52,211,153,.22)','rgba(96,165,250,.22)','rgba(251,191,36,.2)','rgba(248,113,113,.22)'][t]||'#1f2937';}
+
+// show the header summary button once any decisions exist
+function updateSummaryBtn(){
+  const allDec=(coachHistory||[]).length+(state&&state.coaching_history?state.coaching_history.length:0);
+  const btn=document.getElementById('summary-hdr-btn');
+  if(btn) btn.style.display=allDec>0||state&&state.hand_number>1?'':'none';
+}
+
+// ── hand-end modal ────────────────────────────────────────────────────────────
+function handVerdict(history){
+  const mistakes=history.filter(d=>d.coaching?.verdict==='mistake').length;
+  if(mistakes===0) return{text:'Clean hand',cls:'v-optimal'};
+  if(mistakes===1) return{text:'One mistake',cls:'v-acceptable'};
+  return{text:'Rough hand',cls:'v-mistake'};
+}
+
+function showHandModal(){
+  const ov=document.getElementById('hm-overlay');
+  if(!ov||!state) return;
+  const history=coachHistory||[];
+
+  // title
+  document.getElementById('hm-title').textContent=`Hand #${state.hand_number} Complete`;
+
+  // overall verdict pill
+  const vd=handVerdict(history);
+  document.getElementById('hm-verdict').innerHTML=
+    `<span class="vbadge ${vd.cls}" style="font-size:12px;padding:4px 14px">${vd.text}</span>`;
+
+  // decision list
+  const decEl=document.getElementById('hm-decisions');
+  if(history.length){
+    decEl.innerHTML=history.map(d=>`
+      <div class="hm-dec">
+        <div class="hm-dec-row">
+          <span class="ch-st">${d.street}</span>
+          <span class="ch-ac">→ ${d.action}</span>
+          <span class="vbadge ${vc(d.coaching.verdict)}" style="font-size:9px;padding:1px 7px;margin:0">${d.coaching.verdictText}</span>
+        </div>
+        <div style="font-size:11px;color:#64748b;line-height:1.5">${d.coaching.why}</div>
+      </div>`).join('');
+  } else {
+    decEl.innerHTML=`<div style="font-size:12px;color:#475569;padding:4px 0 10px">No decisions recorded this hand.</div>`;
+  }
+
+  // lesson: show spinner, then fetch
+  const lessonTxt=document.getElementById('hm-lesson-txt');
+  lessonTxt.style.color='#475569';
+  lessonTxt.innerHTML=`<div class="thinking" style="margin-top:4px"><span class="td"></span><span class="td"></span><span class="td"></span></div>`;
+  ov.style.display='flex';
+
+  fetch('/api/hand-lesson')
+    .then(r=>r.json())
+    .then(data=>{
+      lessonTxt.style.color='#e2e8f0';
+      lessonTxt.textContent=data.lesson||'Always compare your equity to the pot-odds threshold before acting.';
+    })
+    .catch(()=>{
+      lessonTxt.style.color='#475569';
+      lessonTxt.textContent='Could not connect to Ollama for a lesson — check that it is running.';
+    });
+}
+
+function dismissHandModal(){
+  const ov=document.getElementById('hm-overlay');
+  if(ov) ov.style.display='none';
+}
+function closeHandModal(){
+  dismissHandModal();
+  dealHand();
+}
+
+async function downloadSummary(){
+  const ov=document.getElementById('sum-overlay');
+  ov.style.display='flex';
+  try{
+    const resp=await fetch('/api/session-summary');
+    if(!resp.ok){console.error('summary fetch failed',resp.status);return;}
+    const text=await resp.text();
+    const blob=new Blob([text],{type:'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='poker_session.txt';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  }catch(e){console.error('Summary download failed',e);}
+  finally{ov.style.display='none';}
+}
+</script>
+
+<div id="sum-overlay" class="sum-overlay" style="display:none">
+  <div class="sum-overlay-box">
+    <div class="sum-spinner"></div>
+    <div class="sum-overlay-title">Generating summary…</div>
+    <div class="sum-overlay-sub">Coach is reviewing your session</div>
+  </div>
+</div>
+
+<div id="hm-overlay" class="hm-overlay" style="display:none" onclick="if(event.target===this)dismissHandModal()">
+  <div class="hm-box">
+    <button class="hm-close" onclick="dismissHandModal()" title="Dismiss">✕</button>
+    <div class="hm-title" id="hm-title">Hand Complete</div>
+    <div id="hm-verdict" style="margin-bottom:14px"></div>
+    <div id="hm-decisions"></div>
+    <div class="hm-lesson" id="hm-lesson">
+      <div class="hm-lesson-lbl">Key takeaway</div>
+      <div class="hm-lesson-txt" id="hm-lesson-txt" style="color:#475569">
+        <div class="thinking" style="margin-top:4px"><span class="td"></span><span class="td"></span><span class="td"></span></div>
+      </div>
+    </div>
+    <button class="hm-btn" onclick="closeHandModal()">Got it — Deal Next Hand</button>
+  </div>
+</div>
+</body>
+</html>

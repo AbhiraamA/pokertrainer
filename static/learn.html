@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Trainer — Learn</title>
+<style>
+/* ── reset & base — match index.html exactly ───────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e2e8f0;font-family:system-ui,sans-serif;font-size:14px;line-height:1.6}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;transition:all .12s}
+
+/* ── fixed top bar ─────────────────────────────────────────── */
+.top-bar{
+  position:fixed;top:0;left:0;right:0;height:46px;z-index:200;
+  background:#0d1117;border-bottom:1px solid #1f2937;
+  display:flex;align-items:center;padding:0 20px;gap:10px;
+}
+.top-bar-title{font-size:17px;font-weight:800;color:#f8fafc}
+.top-bar-dot{color:#374151}
+.top-bar-sub{font-size:13px;color:#64748b;font-weight:600}
+.back-btn{
+  margin-left:auto;font-size:11px;color:#475569;background:transparent;
+  border:1px solid #1f2937;border-radius:6px;padding:3px 10px;
+}
+.back-btn:hover{background:#111827;color:#e2e8f0;border-color:#374151}
+
+/* ── layout ────────────────────────────────────────────────── */
+.l-wrap{display:flex;max-width:1140px;margin:0 auto;padding-top:46px;min-height:100vh}
+
+/* ── sidebar ───────────────────────────────────────────────── */
+.l-sidebar{
+  width:216px;flex-shrink:0;position:sticky;top:46px;
+  height:calc(100vh - 46px);overflow-y:auto;border-right:1px solid #1f2937;
+}
+.l-sidebar::-webkit-scrollbar{width:3px}
+.l-sidebar::-webkit-scrollbar-thumb{background:#1f2937}
+.sb-top{padding:16px 14px 12px;border-bottom:1px solid #1f2937;margin-bottom:4px}
+.sb-eyebrow{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:10px}
+.sb-prog-text{font-size:11px;color:#64748b;margin-bottom:6px}
+.sb-prog-bar{height:3px;background:#1f2937;border-radius:2px;overflow:hidden}
+.sb-prog-fill{height:100%;background:#2563eb;border-radius:2px;transition:width .5s}
+.sb-list{list-style:none;padding:6px 0 20px}
+.sb-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 14px;cursor:pointer;border-left:2px solid transparent;
+  transition:background .1s,border-color .1s;
+}
+.sb-item:hover{background:#111827}
+.sb-item.active{background:#111827;border-left-color:#2563eb}
+.sb-chk{
+  width:15px;height:15px;border-radius:50%;border:1.5px solid #374151;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:transparent;flex-shrink:0;transition:all .25s;
+}
+.sb-chk.done{border-color:#34d399;background:#064e3b;color:#34d399}
+.sb-lbl{font-size:12px;color:#64748b;line-height:1.3;transition:color .1s}
+.sb-item:hover .sb-lbl,.sb-item.active .sb-lbl{color:#e2e8f0}
+
+/* ── main content ──────────────────────────────────────────── */
+.l-main{flex:1;padding:40px 44px 80px;min-width:0;max-width:820px}
+
+/* ── section ───────────────────────────────────────────────── */
+.l-section{padding-bottom:60px;border-bottom:1px solid #1f2937;margin-bottom:60px;scroll-margin-top:62px}
+.l-section:last-child{border-bottom:none;padding-bottom:0}
+.l-eyebrow{font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.l-title{font-size:22px;font-weight:800;color:#f8fafc;margin-bottom:14px;line-height:1.2}
+.l-lead{font-size:14px;color:#94a3b8;margin-bottom:24px;line-height:1.7;max-width:640px}
+.l-body p{font-size:13px;color:#94a3b8;line-height:1.75;margin-bottom:13px;max-width:640px}
+.l-body p b,.l-body p strong{color:#e2e8f0;font-weight:600}
+.l-h3{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;margin:22px 0 10px}
+
+/* ── panel (matches .panel in game) ───────────────────────── */
+.l-panel{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+
+/* ── inline cards ──────────────────────────────────────────── */
+.hand-row{display:flex;gap:5px;align-items:flex-end;flex-wrap:wrap;margin:10px 0}
+.lc{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  width:38px;height:54px;border-radius:5px;border:1.5px solid #cbd5e1;
+  background:#fff;font-weight:700;line-height:1.1;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);color:#1e293b;font-size:13px;flex-shrink:0;
+}
+.lc.red{color:#dc2626}
+.lc .suit{font-size:10px}
+.lc.hole{outline:2px solid #f59e0b;outline-offset:2px}
+.lc.dim{opacity:.4}
+
+/* ── hand ranking rows ─────────────────────────────────────── */
+.hr-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.hr-row{
+  display:grid;grid-template-columns:30px 1fr;gap:14px;align-items:start;
+  padding:12px 14px;background:#111827;border:1px solid #1f2937;border-radius:8px;
+  transition:border-color .12s;
+}
+.hr-row:hover{border-color:#374151}
+.hr-num{font-size:16px;font-weight:800;color:#374151;text-align:right;padding-top:2px;font-variant-numeric:tabular-nums}
+.hr-num.top3{color:#f59e0b}
+.hr-info{}
+.hr-name-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.hr-name{font-size:14px;font-weight:700;color:#e2e8f0}
+.hr-badge{font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px}
+.b-best{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+.b-common{background:#1f2937;color:#475569}
+.hr-desc{font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.45}
+
+/* ── street flow ───────────────────────────────────────────── */
+.street-flow{display:flex;margin:20px 0;overflow-x:auto;border-radius:8px;overflow:hidden;border:1px solid #1f2937}
+.st-node{flex:1;min-width:110px;padding:14px 12px;text-align:center;border-right:1px solid #1f2937;background:#111827}
+.st-node:last-child{border-right:none}
+.st-node.hi{background:#1e3a8a;border-right-color:#2563eb}
+.st-name{font-size:11px;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.st-cards{font-size:20px;margin-bottom:4px}
+.st-note{font-size:10px;color:#64748b;line-height:1.4}
+.st-node.hi .st-note{color:#93c5fd}
+
+/* ── position table ────────────────────────────────────────── */
+.pos-list{display:flex;flex-direction:column;gap:5px;margin:16px 0}
+.pos-row{
+  display:grid;grid-template-columns:90px 1fr 70px;align-items:center;gap:12px;
+  padding:10px 14px;background:#111827;border:1px solid #1f2937;border-radius:8px;
+}
+.pos-tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;text-align:center}
+.pt-btn{background:rgba(245,158,11,.12);color:#f59e0b}
+.pt-co {background:rgba(52,211,153,.1);color:#34d399}
+.pt-mp {background:#1f2937;color:#94a3b8}
+.pt-utg{background:rgba(248,113,113,.1);color:#f87171}
+.pt-sb {background:rgba(96,165,250,.08);color:#60a5fa}
+.pt-bb {background:rgba(96,165,250,.08);color:#60a5fa}
+.pos-desc{font-size:12px;color:#94a3b8;line-height:1.4}
+.pos-qual{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;text-align:center}
+.pq-best{background:#064e3b;color:#34d399}
+.pq-good{background:rgba(52,211,153,.08);color:#34d399}
+.pq-mid {background:#1f2937;color:#64748b}
+.pq-bad {background:rgba(248,113,113,.08);color:#f87171}
+.pq-worst{background:#7f1d1d;color:#fca5a5}
+
+/* ── math box ──────────────────────────────────────────────── */
+.math-box{
+  background:#0d1117;border:1px solid #1f2937;border-radius:8px;
+  padding:14px 18px;margin:16px 0;
+}
+.m-row{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid #1f2937;gap:12px;
+  font-size:13px;
+}
+.m-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px}
+.m-row:last-child .m-k{color:#475569;font-size:11px}
+.m-row:last-child .m-v{font-size:15px;font-weight:800;color:#34d399}
+.m-k{color:#64748b;font-size:12px;font-family:ui-monospace,monospace}
+.m-v{color:#e2e8f0;font-family:ui-monospace,monospace}
+.m-hi{color:#60a5fa;font-weight:700}
+
+/* ── outs examples ─────────────────────────────────────────── */
+.out-card{
+  background:#111827;border:1px solid #1f2937;border-radius:8px;
+  padding:14px 16px;margin-bottom:8px;
+}
+.out-name{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:10px}
+.out-sep{font-size:10px;color:#374151;font-weight:700;align-self:center;padding:0 2px}
+.out-result{
+  display:flex;align-items:center;gap:10px;margin-top:10px;
+  padding:8px 12px;background:#0d1117;border-radius:6px;border:1px solid #1f2937;
+  flex-wrap:wrap;
+}
+.out-outs-num{font-size:14px;font-weight:800;color:#fbbf24}
+.out-math{font-size:11px;color:#64748b;flex:1}
+.out-eq{font-size:13px;font-weight:700;color:#60a5fa;margin-left:auto}
+
+/* ── player type grid ──────────────────────────────────────── */
+.pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.pt-card{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:14px}
+.pt-badge{display:inline-flex;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700;margin-bottom:8px}
+.pt-card-name{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:5px}
+.pt-card-desc{font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.5}
+.pt-tip{font-size:11px;color:#94a3b8;padding:8px 10px;background:#0d1117;border-radius:6px;border-left:2px solid #2563eb;line-height:1.55}
+.pt-tip strong{color:#60a5fa}
+
+/* ── mistakes ──────────────────────────────────────────────── */
+.mistake-list{display:flex;flex-direction:column;gap:7px;margin:16px 0}
+.mistake-row{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;background:#111827;border:1px solid #1f2937;border-radius:8px;
+}
+.mistake-n{
+  width:22px;height:22px;border-radius:50%;background:#7f1d1d;
+  color:#fca5a5;font-size:11px;font-weight:700;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.mistake-body-title{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.mistake-body-text{font-size:11px;color:#64748b;line-height:1.55}
+
+/* ── glossary ──────────────────────────────────────────────── */
+.gloss-list{display:flex;flex-direction:column;gap:0}
+.g-row{
+  display:grid;grid-template-columns:150px 1fr;gap:14px;
+  padding:9px 0;border-bottom:1px solid #1f2937;align-items:baseline;
+}
+.g-row:last-child{border-bottom:none}
+.g-term{font-size:12px;font-weight:700;color:#60a5fa;font-family:ui-monospace,monospace}
+.g-def{font-size:12px;color:#64748b;line-height:1.55}
+.g-def b{color:#94a3b8;font-weight:600}
+
+/* ── callout ───────────────────────────────────────────────── */
+.callout{display:flex;gap:11px;padding:12px 14px;border-radius:8px;margin:16px 0;align-items:flex-start}
+.callout.tip{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.2)}
+.callout.warn{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2)}
+.callout.good{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15)}
+.c-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.callout p{font-size:12px;color:#94a3b8;line-height:1.65;margin:0}
+.callout p b{color:#e2e8f0}
+
+/* ── mobile ────────────────────────────────────────────────── */
+@media(max-width:720px){
+  .l-sidebar{display:none}
+  .l-main{padding:24px 18px 60px;max-width:100%}
+  .pt-grid{grid-template-columns:1fr}
+  .g-row{grid-template-columns:1fr;gap:3px}
+}
+</style>
+</head>
+<body>
+
+<!-- Fixed header -->
+<div class="top-bar">
+  <span class="top-bar-title">Poker Trainer</span>
+  <span class="top-bar-dot">·</span>
+  <span class="top-bar-sub">Learn</span>
+  <button class="back-btn" onclick="goBack()">← Back to Game</button>
+</div>
+
+<div class="l-wrap">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <nav class="l-sidebar">
+    <div class="sb-top">
+      <span class="sb-eyebrow">Sections</span>
+      <div class="sb-prog-text" id="prog-text">0 of 10 read</div>
+      <div class="sb-prog-bar"><div class="sb-prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <ul class="sb-list">
+      <li class="sb-item" data-t="s1"><span class="sb-chk" id="c-s1"></span><span class="sb-lbl">Hand Rankings</span></li>
+      <li class="sb-item" data-t="s2"><span class="sb-chk" id="c-s2"></span><span class="sb-lbl">The Streets</span></li>
+      <li class="sb-item" data-t="s3"><span class="sb-chk" id="c-s3"></span><span class="sb-lbl">Position</span></li>
+      <li class="sb-item" data-t="s4"><span class="sb-chk" id="c-s4"></span><span class="sb-lbl">Pot Odds</span></li>
+      <li class="sb-item" data-t="s5"><span class="sb-chk" id="c-s5"></span><span class="sb-lbl">Outs</span></li>
+      <li class="sb-item" data-t="s6"><span class="sb-chk" id="c-s6"></span><span class="sb-lbl">Equity</span></li>
+      <li class="sb-item" data-t="s7"><span class="sb-chk" id="c-s7"></span><span class="sb-lbl">What is GTO</span></li>
+      <li class="sb-item" data-t="s8"><span class="sb-chk" id="c-s8"></span><span class="sb-lbl">Player Types</span></li>
+      <li class="sb-item" data-t="s9"><span class="sb-chk" id="c-s9"></span><span class="sb-lbl">Common Mistakes</span></li>
+      <li class="sb-item" data-t="s10"><span class="sb-chk" id="c-s10"></span><span class="sb-lbl">Glossary</span></li>
+    </ul>
+  </nav>
+
+  <!-- ── Main content ────────────────────────────────────────── -->
+  <main class="l-main">
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — HAND RANKINGS
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s1">
+      <div class="l-eyebrow">Section 01</div>
+      <h2 class="l-title">Hand Rankings</h2>
+      <p class="l-lead">Poker is decided by who makes the best 5-card hand. These are the 10 possible hands from strongest to weakest — every hand beats every hand below it on this list.</p>
+
+      <div class="hr-list">
+
+        <div class="hr-row">
+          <div class="hr-num top3">1</div>
+          <div class="hr-info">
+            <div class="hr-name-row">
+              <span class="hr-name">Royal Flush</span>
+              <span class="hr-badge b-best">Unbeatable</span>
+            </div>
+            <div class="hr-desc">The five highest cards — A K Q J 10 — all of the same suit. Can never lose.</div>
+            <div class="hand-row">
+              <div class="lc"><span>A</span><span class="suit">♠</span></div>
+              <div class="lc"><span>K</span><span class="suit">♠</span></div>
+              <div class="lc"><span>Q</span><span class="suit">♠</span></div>
+              <div class="lc"><span>J</span><span class="suit">♠</span></div>
+              <div class="lc"><span>10</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num top3">2</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Straight Flush</span></div>
+            <div class="hr-desc">Five consecutive cards all of the same suit. Higher top card wins between two straight flushes.</div>
+            <div class="hand-row">
+              <div class="lc red"><span>9</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>8</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>7</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>6</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>5</span><span class="suit">♥</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num top3">3</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Four of a Kind</span></div>
+            <div class="hr-desc">All four cards of the same rank. The fifth card (the "kicker") breaks ties.</div>
+            <div class="hand-row">
+              <div class="lc"><span>A</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>A</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>A</span><span class="suit">♦</span></div>
+              <div class="lc"><span>A</span><span class="suit">♣</span></div>
+              <div class="lc dim"><span>K</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">4</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Full House</span></div>
+            <div class="hr-desc">Three of a kind plus a pair. The rank of the three-of-a-kind determines the winner.</div>
+            <div class="hand-row">
+              <div class="lc"><span>K</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>K</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>K</span><span class="suit">♦</span></div>
+              <div class="lc"><span>Q</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>Q</span><span class="suit">♥</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">5</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Flush</span></div>
+            <div class="hr-desc">Five cards of the same suit, not in sequence. Highest card in the flush wins ties.</div>
+            <div class="hand-row">
+              <div class="lc"><span>A</span><span class="suit">♣</span></div>
+              <div class="lc"><span>J</span><span class="suit">♣</span></div>
+              <div class="lc"><span>9</span><span class="suit">♣</span></div>
+              <div class="lc"><span>5</span><span class="suit">♣</span></div>
+              <div class="lc"><span>2</span><span class="suit">♣</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">6</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Straight</span></div>
+            <div class="hr-desc">Five consecutive cards of mixed suits. Ace can play as high (A-K-Q-J-10) or low (A-2-3-4-5).</div>
+            <div class="hand-row">
+              <div class="lc"><span>8</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>7</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>6</span><span class="suit">♦</span></div>
+              <div class="lc"><span>5</span><span class="suit">♣</span></div>
+              <div class="lc"><span>4</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">7</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Three of a Kind</span></div>
+            <div class="hr-desc">Three cards of the same rank. Also called "trips" when using one hole card and two board cards, or a "set" when you hold a pocket pair and hit one on the board.</div>
+            <div class="hand-row">
+              <div class="lc"><span>Q</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>Q</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>Q</span><span class="suit">♦</span></div>
+              <div class="lc dim"><span>9</span><span class="suit">♠</span></div>
+              <div class="lc red dim"><span>4</span><span class="suit">♥</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">8</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">Two Pair</span></div>
+            <div class="hr-desc">Two different pairs. When both players have two pair, the highest pair wins; if tied, the second pair; if still tied, the kicker.</div>
+            <div class="hand-row">
+              <div class="lc"><span>J</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>J</span><span class="suit">♥</span></div>
+              <div class="lc red"><span>7</span><span class="suit">♦</span></div>
+              <div class="lc"><span>7</span><span class="suit">♣</span></div>
+              <div class="lc dim"><span>A</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">9</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">One Pair</span><span class="hr-badge b-common">Most common</span></div>
+            <div class="hr-desc">Two cards of the same rank. Higher pair wins; if equal, best kicker wins.</div>
+            <div class="hand-row">
+              <div class="lc"><span>10</span><span class="suit">♠</span></div>
+              <div class="lc red"><span>10</span><span class="suit">♥</span></div>
+              <div class="lc dim"><span>A</span><span class="suit">♦</span></div>
+              <div class="lc dim"><span>K</span><span class="suit">♣</span></div>
+              <div class="lc dim"><span>3</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr-row">
+          <div class="hr-num">10</div>
+          <div class="hr-info">
+            <div class="hr-name-row"><span class="hr-name">High Card</span></div>
+            <div class="hr-desc">No matching cards, no sequence, no flush. The best individual card in your hand plays. Loses to any pair or better.</div>
+            <div class="hand-row">
+              <div class="lc"><span>A</span><span class="suit">♠</span></div>
+              <div class="lc red dim"><span>J</span><span class="suit">♥</span></div>
+              <div class="lc red dim"><span>9</span><span class="suit">♦</span></div>
+              <div class="lc dim"><span>6</span><span class="suit">♣</span></div>
+              <div class="lc dim"><span>2</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- hr-list -->
+
+      <div class="callout tip" style="margin-top:20px">
+        <span class="c-icon">💡</span>
+        <p>You always use the best 5-card combination from your 2 hole cards and the 5 community cards. You don't have to use both hole cards — or either of them.</p>
+      </div>
+
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — THE STREETS
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s2">
+      <div class="l-eyebrow">Section 02</div>
+      <h2 class="l-title">The Streets</h2>
+      <p class="l-lead">A hand of poker is played across up to four betting rounds, called streets. New community cards are revealed on each street, changing the strength of every hand.</p>
+
+      <div class="street-flow">
+        <div class="st-node hi">
+          <div class="st-name">Preflop</div>
+          <div class="st-cards">🂠🂠</div>
+          <div class="st-note">You get 2 hole cards. Blinds are posted. Betting starts left of the big blind.</div>
+        </div>
+        <div class="st-node">
+          <div class="st-name">Flop</div>
+          <div class="st-cards">🃟🃟🃟</div>
+          <div class="st-note">3 community cards revealed. First postflop betting round.</div>
+        </div>
+        <div class="st-node">
+          <div class="st-name">Turn</div>
+          <div class="st-cards">🃟</div>
+          <div class="st-note">4th community card revealed. Second postflop betting round.</div>
+        </div>
+        <div class="st-node">
+          <div class="st-name">River</div>
+          <div class="st-cards">🃟</div>
+          <div class="st-note">5th and final card. Last betting round. Then showdown.</div>
+        </div>
+      </div>
+
+      <div class="l-h3">What are community cards?</div>
+      <div class="l-body">
+        <p><b>Community cards</b> (also called "the board") are dealt face-up in the middle of the table and are <b>shared by all players</b>. Everyone uses them to build their best hand.</p>
+        <p>You can use <b>any combination</b> of your 2 hole cards and the 5 community cards to make your best 5-card hand. That might mean using both hole cards, one, or neither (playing the board).</p>
+      </div>
+
+      <div class="l-h3">Blinds</div>
+      <div class="l-body">
+        <p>Before any cards are dealt, the two players to the left of the dealer button post forced bets: the <b>small blind</b> (half a big blind) and the <b>big blind</b>. This creates a starting pot and gives players something to play for immediately. Everyone else acts relative to the big blind amount.</p>
+      </div>
+
+      <div class="l-h3">Showdown</div>
+      <div class="l-body">
+        <p>If more than one player is still in after the final river betting round, everyone remaining flips their cards face-up. The player with the <b>best 5-card hand wins the pot</b>. If you fold before showdown, your cards are never revealed.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — POSITION
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s3">
+      <div class="l-eyebrow">Section 03</div>
+      <h2 class="l-title">Position</h2>
+      <p class="l-lead">Position is where you sit relative to the dealer button. It's one of the most important concepts in poker — <b>acting last gives you a huge advantage</b> because you get to see what everyone else does before you decide.</p>
+
+      <div class="pos-list">
+        <div class="pos-row">
+          <span class="pos-tag pt-utg">UTG</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Under the Gun</b> — first to act preflop. You have zero information. Everyone else will act after you.</div>
+          <span class="pos-qual pq-worst">Worst</span>
+        </div>
+        <div class="pos-row">
+          <span class="pos-tag pt-mp">MP</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Middle Position</b> — slightly better. A few players have acted in front of you, but several remain behind.</div>
+          <span class="pos-qual pq-bad">Early</span>
+        </div>
+        <div class="pos-row">
+          <span class="pos-tag pt-co">CO</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Cutoff</b> — one seat before the button. Late position; only the button acts after you postflop.</div>
+          <span class="pos-qual pq-good">Good</span>
+        </div>
+        <div class="pos-row">
+          <span class="pos-tag pt-btn">BTN</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Button (Dealer)</b> — acts <b style="color:#e2e8f0">last</b> on every postflop street. You see everyone else act before you decide. Maximum information.</div>
+          <span class="pos-qual pq-best">Best</span>
+        </div>
+        <div class="pos-row">
+          <span class="pos-tag pt-sb">SB</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Small Blind</b> — posts half a big blind. Acts second-to-last preflop, but first on all postflop streets. Worst postflop position.</div>
+          <span class="pos-qual pq-bad">Weak</span>
+        </div>
+        <div class="pos-row">
+          <span class="pos-tag pt-bb">BB</span>
+          <div class="pos-desc"><b style="color:#e2e8f0">Big Blind</b> — posts a full big blind. Acts last preflop (advantage), but second-to-first postflop (disadvantage).</div>
+          <span class="pos-qual pq-mid">Mixed</span>
+        </div>
+      </div>
+
+      <div class="callout tip" style="margin-top:4px">
+        <span class="c-icon">💡</span>
+        <p><b>The golden rule:</b> play fewer, stronger hands from early position (UTG, MP). Play more hands from late position (CO, BTN). The button is so powerful that hands unplayable from UTG become profitable from the button.</p>
+      </div>
+
+      <div class="callout warn" style="margin-top:0">
+        <span class="c-icon">⚠️</span>
+        <p>The small blind looks cheap but it's the worst position postflop. You'll act first on every street after the flop — your opponents will always know your range of hands before they have to commit anything.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4 — POT ODDS
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s4">
+      <div class="l-eyebrow">Section 04</div>
+      <h2 class="l-title">Pot Odds</h2>
+      <p class="l-lead">Pot odds tell you <b>how often you need to win to make a call worthwhile</b>. It's a simple comparison: what you're risking versus what you stand to gain.</p>
+
+      <div class="l-h3">Step-by-step example</div>
+
+      <div class="math-box">
+        <div class="m-row"><span class="m-k">Pot before the bet</span><span class="m-v">$100</span></div>
+        <div class="m-row"><span class="m-k">Opponent bets</span><span class="m-v">$50</span></div>
+        <div class="m-row"><span class="m-k">Total pot you'd win</span><span class="m-v">$100 + $50 = <span class="m-hi">$150</span></span></div>
+        <div class="m-row"><span class="m-k">You need to call</span><span class="m-v">$50</span></div>
+        <div class="m-row"><span class="m-k">Pot odds calculation</span><span class="m-v">$50 ÷ ($100 + $50 + $50) = $50 ÷ $200 = <span class="m-hi">25%</span></span></div>
+        <div class="m-row"><span class="m-k">Break-even threshold</span><span class="m-v">You need to win at least <span class="m-hi">25%</span> of the time</span></div>
+      </div>
+
+      <div class="l-body">
+        <p>If your <b>equity</b> (chance of winning the hand) is <b>higher than 25%</b>, calling is profitable in the long run. If it's lower, folding saves you money over time.</p>
+        <p>The ratio format: the pot is offering you <b>3:1 odds</b> (win $150, risk $50). You need to win 1 out of every 4 times to break even — which is 25%.</p>
+      </div>
+
+      <div class="l-h3">Quick reference</div>
+      <div class="math-box">
+        <div class="m-row"><span class="m-k">Call $10 into a $10 pot</span><span class="m-v">$10 ÷ $30 = <span class="m-hi">33%</span> needed  (2:1 pot odds)</span></div>
+        <div class="m-row"><span class="m-k">Call $25 into a $100 pot</span><span class="m-v">$25 ÷ $150 = <span class="m-hi">17%</span> needed  (5:1 pot odds)</span></div>
+        <div class="m-row"><span class="m-k">Call $50 into a $50 pot</span><span class="m-v">$50 ÷ $150 = <span class="m-hi">33%</span> needed  (2:1 pot odds)</span></div>
+        <div class="m-row"><span class="m-k">Call pot-sized bet</span><span class="m-v">Always 33% needed — remember this one</span></div>
+      </div>
+
+      <div class="callout good">
+        <span class="c-icon">✓</span>
+        <p>This app shows pot odds as a ratio (e.g. <b>2:1</b>) and a percentage (e.g. <b>need 33% to call</b>) in the action panel. Compare it to your equity — if equity &gt; threshold, the call is profitable.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 5 — OUTS
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s5">
+      <div class="l-eyebrow">Section 05</div>
+      <h2 class="l-title">Outs</h2>
+      <p class="l-lead">An <b>out</b> is any card remaining in the deck that would improve your hand enough to likely win. Counting your outs lets you estimate how often you'll improve — and whether calling is worthwhile.</p>
+
+      <div class="l-h3">Three worked examples</div>
+
+      <div class="out-card">
+        <div class="out-name">Flush Draw — 9 outs</div>
+        <div class="hand-row">
+          <div class="lc hole"><span>K</span><span class="suit">♠</span></div>
+          <div class="lc hole"><span>J</span><span class="suit">♠</span></div>
+          <span class="out-sep">+</span>
+          <div class="lc"><span>8</span><span class="suit">♠</span></div>
+          <div class="lc red"><span>5</span><span class="suit">♦</span></div>
+          <div class="lc"><span>2</span><span class="suit">♠</span></div>
+        </div>
+        <div class="l-body"><p style="margin:6px 0 0">You have 4 spades. There are 13 spades in the deck, 4 are accounted for — that leaves <b>9 spades</b> still in the deck. Any one completes your flush.</p></div>
+        <div class="out-result">
+          <span class="out-outs-num">9 outs</span>
+          <span class="out-math">Flop: 9 × 4 = 36% &nbsp;|&nbsp; Turn: 9 × 2 = 18%</span>
+        </div>
+      </div>
+
+      <div class="out-card">
+        <div class="out-name">Open-Ended Straight Draw — 8 outs</div>
+        <div class="hand-row">
+          <div class="lc hole"><span>7</span><span class="suit">♠</span></div>
+          <div class="lc hole red"><span>8</span><span class="suit">♦</span></div>
+          <span class="out-sep">+</span>
+          <div class="lc red"><span>5</span><span class="suit">♥</span></div>
+          <div class="lc"><span>6</span><span class="suit">♣</span></div>
+          <div class="lc dim"><span>K</span><span class="suit">♠</span></div>
+        </div>
+        <div class="l-body"><p style="margin:6px 0 0">You have 5-6-7-8. Any <b>4</b> completes the low end (4♠ 4♥ 4♦ 4♣), any <b>9</b> completes the high end (9♠ 9♥ 9♦ 9♣) — that's 8 cards total.</p></div>
+        <div class="out-result">
+          <span class="out-outs-num">8 outs</span>
+          <span class="out-math">Flop: 8 × 4 = 32% &nbsp;|&nbsp; Turn: 8 × 2 = 16%</span>
+        </div>
+      </div>
+
+      <div class="out-card">
+        <div class="out-name">Gutshot Straight Draw — 4 outs</div>
+        <div class="hand-row">
+          <div class="lc hole"><span>5</span><span class="suit">♠</span></div>
+          <div class="lc hole red"><span>9</span><span class="suit">♦</span></div>
+          <span class="out-sep">+</span>
+          <div class="lc red"><span>6</span><span class="suit">♥</span></div>
+          <div class="lc"><span>7</span><span class="suit">♣</span></div>
+          <div class="lc dim"><span>A</span><span class="suit">♠</span></div>
+        </div>
+        <div class="l-body"><p style="margin:6px 0 0">You have 5-6-7-9. Only an <b>8</b> fills the gap (8♠ 8♥ 8♦ 8♣) — exactly 4 cards. Much weaker than an open-ended draw.</p></div>
+        <div class="out-result">
+          <span class="out-outs-num">4 outs</span>
+          <span class="out-math">Flop: 4 × 4 = 16% &nbsp;|&nbsp; Turn: 4 × 2 = 8%</span>
+        </div>
+      </div>
+
+      <div class="l-h3">Rule of 2 and 4</div>
+      <div class="l-body">
+        <p>A fast way to estimate your equity from outs:</p>
+        <p>• <b>On the flop</b> (2 cards still to come): multiply outs × 4<br>
+           • <b>On the turn</b> (1 card still to come): multiply outs × 2</p>
+        <p>Example: flush draw on the flop — 9 × 4 = <b>36%</b>. This is an approximation; the app's Monte Carlo simulation gives you a more exact number.</p>
+      </div>
+
+      <div class="callout warn">
+        <span class="c-icon">⚠️</span>
+        <p>Not all outs are clean. If an 8 completes your straight but also gives your opponent a flush, it may not actually be a winning card. Experienced players discount "dirty" outs.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 6 — EQUITY
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s6">
+      <div class="l-eyebrow">Section 06</div>
+      <h2 class="l-title">Equity</h2>
+      <p class="l-lead">Equity is your <b>mathematical share of the pot</b> if the hand were played out thousands of times. It doesn't mean you'll win this particular hand — it tells you what you'd win on average.</p>
+
+      <div class="l-h3">The coin flip analogy</div>
+      <div class="l-body">
+        <p>Imagine flipping a coin for a $100 pot. You win half the time, so your equity is <b>$50</b> — even before the flip happens. It doesn't matter that you'll either win $100 or $0 on any single flip; your <b>expected value</b> is always $50.</p>
+        <p>In poker: if you hold 70% equity in a $100 pot, your expected share is <b>$70</b>. If someone offers you the hand for $60, take it — it's worth more than you're paying. If they ask $75, fold — you'd be paying more than it's worth.</p>
+      </div>
+
+      <div class="l-h3">Equity changes on every street</div>
+      <div class="l-body">
+        <p>Equity isn't fixed. Every new community card changes the calculation. You might have 70% equity on the flop, then spike to 95% when you hit your flush on the turn — or drop to 12% when an opponent completes their straight.</p>
+        <p>That's why experienced players don't just think about their current hand — they think about what cards could come and how those change the situation.</p>
+      </div>
+
+      <div class="l-h3">Two ways this app calculates equity</div>
+
+      <div class="l-panel" style="margin-top:4px">
+        <div style="font-size:12px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Outs-based (Rule of 2 &amp; 4) — instant</div>
+        <div style="font-size:12px;color:#64748b;line-height:1.6">Counts your outs and multiplies by 2 or 4 depending on the street. Returns in microseconds. Good rough estimate — shows instantly while you're deciding. Available on the flop and turn.</div>
+      </div>
+      <div class="l-panel">
+        <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:6px">Monte Carlo simulation — more accurate ✓</div>
+        <div style="font-size:12px;color:#64748b;line-height:1.6">The app deals out 400–600 complete random hands behind the scenes and counts how many you win. This catches scenarios outs-based math misses — opponent hands, blockers, board texture. Takes ~30ms and runs in the background. The coach always prefers this number.</div>
+      </div>
+
+      <div class="callout good">
+        <span class="c-icon">✓</span>
+        <p>When both numbers are visible, <b>trust Monte Carlo</b>. It accounts for your specific opponents' likely holdings, not just raw card counts.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 7 — WHAT IS GTO
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s7">
+      <div class="l-eyebrow">Section 07</div>
+      <h2 class="l-title">What is GTO</h2>
+      <p class="l-lead"><b>GTO</b> stands for Game Theory Optimal. It's a strategy that is mathematically <b>unexploitable</b> — even if your opponent knows exactly how you play, they cannot profit from that knowledge.</p>
+
+      <div class="l-h3">The rock-paper-scissors analogy</div>
+      <div class="l-body">
+        <p>In rock-paper-scissors, the GTO strategy is to pick each option <b>exactly ⅓ of the time at random</b>. If you do this, your opponent cannot beat you — no matter what they throw, they'll win ⅓, lose ⅓, and tie ⅓ of the time.</p>
+        <p>But if you always throw rock, your opponent figures it out and always throws paper. You've become <b>exploitable</b>.</p>
+        <p>Poker works the same way. GTO means balancing how often you bet, check, call, and fold so opponents can't deduce your hand from your actions alone. You mix bluffs with value bets in mathematically correct proportions.</p>
+      </div>
+
+      <div class="l-h3">GTO vs Exploitative Play</div>
+      <div class="l-body">
+        <p>GTO is a <b>baseline</b> — the floor below which you shouldn't drop. But against weak or predictable opponents, you can often do better by <b>exploiting their specific mistakes</b>. For example:</p>
+        <p>• A player who folds too often to bets → bluff them more than GTO says<br>
+           • A player who calls every bet → never bluff, bet only your strong hands</p>
+        <p>The coach in this app evaluates your decisions against GTO principles. That doesn't mean GTO is always the highest-profit play — it means it's the <b>hardest to punish</b>.</p>
+      </div>
+
+      <div class="callout tip">
+        <span class="c-icon">💡</span>
+        <p>As a beginner, don't try to play perfect GTO. Focus on <b>fundamentals first</b>: fold weak hands, bet strong hands, call when pot odds justify it. GTO nuance comes later.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 8 — PLAYER TYPES
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s8">
+      <div class="l-eyebrow">Section 08</div>
+      <h2 class="l-title">Player Types</h2>
+      <p class="l-lead">Most players fall into one of four archetypes based on two axes: how many hands they play (tight vs loose) and how aggressively they bet (aggressive vs passive). Recognizing the type tells you how to adjust.</p>
+
+      <div class="pt-grid">
+
+        <div class="pt-card">
+          <span class="pt-badge" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.2)">TAG · Tight-Aggressive</span>
+          <div class="pt-card-name">Tight Aggressive</div>
+          <div class="pt-card-desc">Plays few hands but bets and raises them hard. Usually strong when they enter a pot. The most common winning player type.</div>
+          <div class="pt-tip"><strong>How to play against them:</strong> Respect their bets — they usually mean it. Don't bluff them into big pots. Wait for strong hands before stacking off.</div>
+        </div>
+
+        <div class="pt-card">
+          <span class="pt-badge" style="background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.2)">LAG · Loose-Aggressive</span>
+          <div class="pt-card-name">Loose Aggressive / Maniac</div>
+          <div class="pt-card-desc">Plays many hands and applies constant pressure with bets and raises. Often bluffing. Hard to read — could have anything.</div>
+          <div class="pt-tip"><strong>How to play against them:</strong> Let them bluff into you. Call down with medium-strength hands you'd fold against a TAG. Don't re-bluff a maniac.</div>
+        </div>
+
+        <div class="pt-card">
+          <span class="pt-badge" style="background:#1f2937;color:#94a3b8;border:1px solid #374151">Rock · Tight-Passive</span>
+          <div class="pt-card-name">Tight Passive (Rock)</div>
+          <div class="pt-card-desc">Plays few hands and rarely bets or raises even when they're strong. They call a lot and check when they should bet.</div>
+          <div class="pt-tip"><strong>How to play against them:</strong> When a rock raises, fold unless you have a very strong hand. Steal their blinds frequently — they won't fight back.</div>
+        </div>
+
+        <div class="pt-card">
+          <span class="pt-badge" style="background:rgba(148,163,184,.08);color:#94a3b8;border:1px solid #374151">STA · Calling Station</span>
+          <div class="pt-card-name">Loose Passive (Calling Station)</div>
+          <div class="pt-card-desc">Plays many hands and calls almost every bet but rarely raises. Will call with any pair, any draw, any gutshot.</div>
+          <div class="pt-tip"><strong>How to play against them:</strong> Never bluff a calling station — they'll call. Instead, <strong>bet your strong hands for maximum value</strong>. They'll pay you off.</div>
+        </div>
+
+      </div>
+
+      <div class="callout tip" style="margin-top:4px">
+        <span class="c-icon">💡</span>
+        <p>The bots in this app are one of four types: <b>TAG</b>, <b>LAG</b>, <b>Maniac</b>, and <b>Calling Station (STA)</b>. Each has a label shown on the felt and in the player list.</p>
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 9 — COMMON MISTAKES
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s9">
+      <div class="l-eyebrow">Section 09</div>
+      <h2 class="l-title">Common Mistakes Beginners Make</h2>
+      <p class="l-lead">Almost every beginner leaks money in the same predictable ways. Recognizing these mistakes in your own game is worth more than any advanced strategy.</p>
+
+      <div class="mistake-list">
+
+        <div class="mistake-row">
+          <div class="mistake-n">1</div>
+          <div>
+            <div class="mistake-body-title">Playing too many hands preflop</div>
+            <div class="mistake-body-text">Every hand you voluntarily enter costs money. Folding 7-2 offsuit before the flop costs you nothing. Calling a raise with it and then calling three more streets costs you everything. Tighten your preflop range — especially from early position.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">2</div>
+          <div>
+            <div class="mistake-body-title">Ignoring position</div>
+            <div class="mistake-body-text">Playing a mediocre hand from UTG is a losing play. Playing that same hand from the button can be fine. Many beginners play the same range regardless of where they sit. Acting last is worth a lot — account for it.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">3</div>
+          <div>
+            <div class="mistake-body-title">Ignoring pot odds</div>
+            <div class="mistake-body-text">Calling a $50 bet into a $50 pot because you "might hit" isn't enough. You need to win 33% of the time to break even there. If your equity is 20%, you're losing money on every call — even the ones you eventually win.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">4</div>
+          <div>
+            <div class="mistake-body-title">Chasing draws without the odds</div>
+            <div class="mistake-body-text">A gutshot draw (4 outs) has about 8% equity on the turn. Calling a pot-sized bet to hit it requires 33% equity. The math doesn't work — but beginners call anyway because "I had a draw." Only chase when the pot odds justify it.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">5</div>
+          <div>
+            <div class="mistake-body-title">Not betting strong hands for value</div>
+            <div class="mistake-body-text">Slowplaying (checking a monster hand to trap) sounds clever but often backfires. You give opponents free cards to outdraw you and miss value from hands that would have called a bet. When you're strong, usually bet.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">6</div>
+          <div>
+            <div class="mistake-body-title">Folding too easily to aggression</div>
+            <div class="mistake-body-text">When an opponent bets, it doesn't mean they have a strong hand. If you have top pair and fold every time someone bets, aggressive players will exploit you constantly. Compare your equity to the pot odds before folding.</div>
+          </div>
+        </div>
+
+        <div class="mistake-row">
+          <div class="mistake-n">7</div>
+          <div>
+            <div class="mistake-body-title">Treating every hand identically regardless of stack size</div>
+            <div class="mistake-body-text">With 10 big blinds, you should often go all-in preflop with any decent hand — you don't have room to play postflop. With 200 big blinds, you can fold hands that would be mandatory shoves with a short stack. Stack size changes the math significantly.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 10 — GLOSSARY
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="l-section" id="s10">
+      <div class="l-eyebrow">Section 10</div>
+      <h2 class="l-title">Glossary</h2>
+      <p class="l-lead">Every term used in this app, defined in plain English.</p>
+
+      <div class="gloss-list">
+        <div class="g-row"><span class="g-term">All-in</span><span class="g-def">Betting all your remaining chips. Once all-in, you can't win more than the amount you put in from any single player (side pots apply if multiple players are all-in for different amounts).</span></div>
+        <div class="g-row"><span class="g-term">BB (Big Blind)</span><span class="g-def">The forced bet posted by the player two seats left of the dealer. Sets the minimum bet size for the preflop round.</span></div>
+        <div class="g-row"><span class="g-term">Bluff</span><span class="g-def">Betting or raising with a weak hand to make opponents fold stronger hands. A bluff wins by making everyone else fold — not by showdown.</span></div>
+        <div class="g-row"><span class="g-term">BTN (Button)</span><span class="g-def">The dealer position, marked by the dealer button. Acts last on every postflop street — the most powerful position at the table.</span></div>
+        <div class="g-row"><span class="g-term">Call</span><span class="g-def">Matching the current bet to stay in the hand without raising. You don't add more — you match what's been bet.</span></div>
+        <div class="g-row"><span class="g-term">Check</span><span class="g-def">Declining to bet when no bet has been made yet in this round. Keeps you in the hand for free. Not available if someone has already bet.</span></div>
+        <div class="g-row"><span class="g-term">Community cards</span><span class="g-def">The shared cards dealt face-up in the middle of the table (flop, turn, river). Every player uses them to build their best hand.</span></div>
+        <div class="g-row"><span class="g-term">Draw</span><span class="g-def">An incomplete hand that needs one or more cards to become strong. Examples: flush draw, straight draw, gutshot. You're "on a draw" when you're betting on improving.</span></div>
+        <div class="g-row"><span class="g-term">Equity</span><span class="g-def">Your mathematical share of the pot if the hand were played out many times. 60% equity in a $100 pot = you'd win $60 on average.</span></div>
+        <div class="g-row"><span class="g-term">Flop</span><span class="g-def">The first three community cards, revealed simultaneously. Triggers the first postflop betting round.</span></div>
+        <div class="g-row"><span class="g-term">Fold</span><span class="g-def">Discarding your hand and giving up your claim to the pot. You lose any chips already invested but risk nothing more.</span></div>
+        <div class="g-row"><span class="g-term">GTO</span><span class="g-def">Game Theory Optimal. A mathematically balanced strategy that cannot be exploited — even a player who knows your strategy can't profit from it. Used as a benchmark for decision quality.</span></div>
+        <div class="g-row"><span class="g-term">Hand range</span><span class="g-def">The set of all possible hands a player might hold given their actions. Instead of guessing one exact hand, you think in terms of ranges: "they could have any pair plus strong aces."</span></div>
+        <div class="g-row"><span class="g-term">Hole cards</span><span class="g-def">The two private cards dealt face-down to each player at the start of a hand. Only you can see them (until showdown).</span></div>
+        <div class="g-row"><span class="g-term">Implied odds</span><span class="g-def">The additional chips you expect to win on future streets if you hit your hand. A draw that doesn't justify a call on pure pot odds can still be worth playing if you'll win a huge pot when you hit.</span></div>
+        <div class="g-row"><span class="g-term">LAG</span><span class="g-def">Loose-Aggressive. A player type that plays many hands and bets/raises aggressively. Hard to read; frequently bluffs.</span></div>
+        <div class="g-row"><span class="g-term">Made hand</span><span class="g-def">A complete hand that doesn't need improvement to be strong — e.g. a flopped flush, a set, top pair. Opposite of a draw.</span></div>
+        <div class="g-row"><span class="g-term">MAN (Maniac)</span><span class="g-def">An extreme loose-aggressive player who raises and re-raises almost every hand. Profitable to let them bluff into strong hands.</span></div>
+        <div class="g-row"><span class="g-term">Monte Carlo simulation</span><span class="g-def">A method of calculating equity by simulating thousands of random runouts. More accurate than outs-based estimates because it accounts for actual card distribution and opponent hands.</span></div>
+        <div class="g-row"><span class="g-term">Overcard</span><span class="g-def">A hole card that ranks higher than any card on the board. If the board is 8-5-3 and you hold an Ace, that Ace is an overcard — it might pair on the next street.</span></div>
+        <div class="g-row"><span class="g-term">Outs</span><span class="g-def">Specific cards remaining in the deck that would improve your hand enough to likely win. Flush draw = 9 outs; open-ended straight draw = 8 outs; gutshot = 4 outs.</span></div>
+        <div class="g-row"><span class="g-term">Position</span><span class="g-def">Where you sit relative to the dealer button. Later position = more information = better position. The button is the best; the small blind is the worst postflop.</span></div>
+        <div class="g-row"><span class="g-term">Pot</span><span class="g-def">The total chips at stake in the current hand, contributed by all bets and blinds. The winner takes the pot.</span></div>
+        <div class="g-row"><span class="g-term">Pot odds</span><span class="g-def">The ratio of the amount you need to call compared to the total pot (after you call). Tells you the minimum equity you need to make the call mathematically profitable.</span></div>
+        <div class="g-row"><span class="g-term">Preflop</span><span class="g-def">The first betting round, before any community cards are dealt. Players act based only on their two hole cards.</span></div>
+        <div class="g-row"><span class="g-term">Raise</span><span class="g-def">Increasing the size of the current bet. Forces other players to call, re-raise, or fold. Also called a "bet" when you're the first to put chips in (no prior bet to raise).</span></div>
+        <div class="g-row"><span class="g-term">River</span><span class="g-def">The fifth and final community card. After the river betting round, any remaining players go to showdown.</span></div>
+        <div class="g-row"><span class="g-term">SB (Small Blind)</span><span class="g-def">The forced bet posted by the player directly left of the dealer button. Half the size of the big blind. Worst postflop position.</span></div>
+        <div class="g-row"><span class="g-term">Showdown</span><span class="g-def">The reveal of all remaining players' hole cards after the river betting is complete. Best 5-card hand wins the pot.</span></div>
+        <div class="g-row"><span class="g-term">Stack</span><span class="g-def">The total chips a player currently has at the table. Your stack limits how much you can bet or lose in a hand.</span></div>
+        <div class="g-row"><span class="g-term">STA (Calling Station)</span><span class="g-def">A loose-passive player who calls almost every bet but rarely raises. Beat them by betting strong hands — they'll pay you off. Never bluff them.</span></div>
+        <div class="g-row"><span class="g-term">TAG</span><span class="g-def">Tight-Aggressive. Plays a narrow range of strong hands and bets them forcefully. The most common winning player style.</span></div>
+        <div class="g-row"><span class="g-term">To call</span><span class="g-def">The amount of chips you need to put in to match the current bet and stay in the hand. Shown in the app's action panel.</span></div>
+        <div class="g-row"><span class="g-term">Turn</span><span class="g-def">The fourth community card, dealt after the flop betting round. Triggers the third betting round.</span></div>
+        <div class="g-row"><span class="g-term">UTG (Under the Gun)</span><span class="g-def">The player immediately left of the big blind. Acts first preflop — the worst position because you have no information about how anyone else will act.</span></div>
+        <div class="g-row"><span class="g-term">Value bet</span><span class="g-def">Betting with a strong hand specifically to get called by weaker hands. The goal is to extract chips from opponents who have second-best hands.</span></div>
+        <div class="g-row"><span class="g-term">Verdict</span><span class="g-def">The coach's assessment of your decision: <b>Optimal</b> (best possible play), <b>Acceptable</b> (reasonable, not perfect), or <b>Mistake</b> (a play that costs you expected value long-term).</span></div>
+      </div>
+
+    </section>
+
+    <div style="text-align:center;padding:32px 0 16px">
+      <button class="back-btn" onclick="goBack()" style="font-size:13px;padding:9px 20px">← Back to Game</button>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function goBack(){
+  if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}
+  else if(history.length>1){history.back();}
+  else{window.location.href='/';}
+}
+
+const TOTAL = 10;
+const read = new Set();
+
+// ── mark a section read ──────────────────────────────────────────
+function markRead(id) {
+  if (read.has(id)) return;
+  read.add(id);
+  const chk = document.getElementById('c-' + id);
+  if (chk) { chk.classList.add('done'); chk.textContent = '✓'; }
+  const n = read.size;
+  document.getElementById('prog-text').textContent = n + ' of ' + TOTAL + ' read';
+  document.getElementById('prog-fill').style.width = Math.round(n / TOTAL * 100) + '%';
+}
+
+// ── intersection observer — mark read when section is 25% visible ─
+const readObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting && e.intersectionRatio >= 0.25) markRead(e.target.id); });
+}, { threshold: 0.25 });
+
+// ── active sidebar highlight ─────────────────────────────────────
+const activeObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+      const item = document.querySelector('.sb-item[data-t="' + e.target.id + '"]');
+      if (item) item.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+
+document.querySelectorAll('.l-section').forEach(s => {
+  readObs.observe(s);
+  activeObs.observe(s);
+});
+
+// ── sidebar click → smooth scroll ───────────────────────────────
+document.querySelectorAll('.sb-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const target = document.getElementById(item.dataset.t);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>
